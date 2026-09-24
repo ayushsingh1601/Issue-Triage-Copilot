@@ -1,0 +1,6 @@
+{
+  "number": 41,
+  "title": "Fix bug",
+  "state": "open",
+  "pull_request": {"url": "https://api.github.com/repos/x/y/pulls/41"}
+}

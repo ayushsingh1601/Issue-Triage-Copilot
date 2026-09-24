@@ -1,0 +1,15 @@
+{
+  "sha": "abc123",
+  "truncated": false,
+  "tree": [
+    {"path": "CONTRIBUTING.md", "type": "blob"},
+    {"path": "docs/contributing_guide.md", "type": "blob"},
+    {"path": ".github/ISSUE_TEMPLATE/bug_report.yml", "type": "blob"},
+    {"path": ".github/PULL_REQUEST_TEMPLATE.md", "type": "blob"},
+    {"path": "RELEASE.md", "type": "blob"},
+    {"path": "README.md", "type": "blob"},
+    {"path": "src/main.py", "type": "blob"},
+    {"path": ".github/workflows/ci.yml", "type": "blob"},
+    {"path": "docs", "type": "tree"}
+  ]
+}

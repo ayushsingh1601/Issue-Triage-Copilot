@@ -1,0 +1,15 @@
+[
+  {"id": "e1", "event": "labeled", "label": {"name": "bug"}},
+  {
+    "id": "e2",
+    "event": "cross-referenced",
+    "source": {"issue": {"number": 45, "pull_request": {"url": "https://api.github.com/repos/x/y/pulls/45"}}}
+  },
+  {
+    "id": "e3",
+    "event": "referenced",
+    "source": {"issue": {"number": 45, "pull_request": {"url": "https://api.github.com/repos/x/y/pulls/45"}}}
+  },
+  {"id": "e4", "event": "cross-referenced", "source": {"issue": {"number": 99}}},
+  {"id": "e5", "event": "closed"}
+]

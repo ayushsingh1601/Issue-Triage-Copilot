@@ -1,0 +1,13 @@
+{
+  "number": 42,
+  "title": "Regression: crash on empty DataFrame",
+  "state": "closed",
+  "created_at": "2024-01-01T00:00:00Z",
+  "closed_at": "2024-01-05T00:00:00Z",
+  "body": "Stack trace:\n```\nTraceback (most recent call last):\n  File \"pandas/core/frame.py\", line 123, in foo\n    raise ValueError\n```",
+  "labels": [
+    {"name": "bug", "color": "d73a4a"},
+    {"name": "DataFrame", "color": "fbca04"}
+  ],
+  "user": {"login": "octocat"}
+}
