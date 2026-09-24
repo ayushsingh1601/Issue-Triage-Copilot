@@ -57,3 +57,6 @@ class ChromaStore:
 
     def count(self) -> int:
         return self._collection.count()
+
+    def ids(self) -> list[str]:
+        return self._collection.get(include=[])["ids"]
