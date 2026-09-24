@@ -10,6 +10,7 @@ from triage.github import GitHubClient
 
 @dataclass
 class FetchedIssue:
+    repo: str
     issue: dict[str, Any]
     comments: list[dict[str, Any]] = field(default_factory=list)
     events: list[dict[str, Any]] = field(default_factory=list)
@@ -52,7 +53,7 @@ def fetch_issue_details(
     number = issue["number"]
     comments = list(gh.list_issue_comments(repo, number))
     events = list(gh.paginate(f"/repos/{repo}/issues/{number}/events"))
-    return FetchedIssue(issue=issue, comments=comments, events=events)
+    return FetchedIssue(repo=repo, issue=issue, comments=comments, events=events)
 
 
 def linked_prs(events: list[dict[str, Any]]) -> list[int]:

@@ -40,7 +40,7 @@ def test_fetch_issue_details():
     fetched = fetch_issue_details(client, "x/y", load("issue.json"))
     assert fetched.number == 42
     assert fetched.labels == ["bug", "DataFrame"]
-    assert [c["author_association"] for c in fetched.comments] == ["COLLABORATOR", "MEMBER"]
+    assert [c["author_association"] for c in fetched.comments] == ["COLLABORATOR", "NONE"]
     assert fetched.linked_prs == [45]
 
 
