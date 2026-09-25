@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import os
-import re
 from collections.abc import Callable
 
 from triage.guardrails.schema import TriageDecision
+from triage.jsonutil import extract_json
 from triage.prompts.vanilla import build_vanilla_prompt
 from triage.rag.store import Match
 
@@ -38,12 +38,4 @@ class VanillaAgent:
     ) -> TriageDecision:
         prompt = build_vanilla_prompt(query, issue_matches, doc_matches)
         raw = self._respond(prompt)
-        return TriageDecision.model_validate_json(_extract_json(raw))
-
-
-def _extract_json(text: str) -> str:
-    text = text.strip()
-    fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
-    if fence:
-        text = fence.group(1).strip()
-    return text
+        return TriageDecision.model_validate_json(extract_json(raw))

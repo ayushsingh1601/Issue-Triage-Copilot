@@ -1,7 +1,8 @@
 import json
 
-from triage.agents.vanilla import VanillaAgent, _extract_json
+from triage.agents.vanilla import VanillaAgent
 from triage.guardrails.schema import TriageDecision
+from triage.jsonutil import extract_json
 from triage.prompts.vanilla import build_vanilla_prompt
 from triage.rag.embed import Embedder
 from triage.rag.pipeline import VanillaPipeline, build_retriever
@@ -23,7 +24,7 @@ def make_indexes(tmp_path):
             "Bug 2\n\nmerge conflict on main",
             "Bug 3\n\npip install fails offline",
         ],
-        embeddings=[[1.0, 0.0], [2.0, 0.0], [3.0, 0.0]],
+        embeddings=[[1.0, 0.0], [0.0, 1.0], [-1.0, 0.0]],
         metadatas=[
             {"repo": "x/y", "number": 1, "title": "Bug 1"},
             {"repo": "x/y", "number": 2, "title": "Bug 2"},
@@ -101,5 +102,5 @@ def test_build_retriever_from_disk(tmp_path):
 
 
 def test_extract_json_strips_fences():
-    assert _extract_json("```json\n{\"a\": 1}\n```") == '{"a": 1}'
-    assert _extract_json('{"a": 1}') == '{"a": 1}'
+    assert extract_json("```json\n{\"a\": 1}\n```") == '{"a": 1}'
+    assert extract_json('{"a": 1}') == '{"a": 1}'
