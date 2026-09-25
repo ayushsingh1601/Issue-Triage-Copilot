@@ -187,7 +187,24 @@ python triage/scripts/build_corpus.py
 ```
 
 Embeds the corpus (excluding held-out) and writes Chroma indexes under
-`triage/data/indexes/`. Chunking knobs: `--chunk-size`, `--overlap`, `--flat`.
+`triage/data/indexes/`. Chunking knobs: `--chunk-size`, `--overlap`, `--flat`. The default
+is a clean build: both collections are cleared first (the embedding cache is kept, so
+unchanged texts are not re-embedded).
+
+### 2b. Refresh the indexes when new issues arrive
+
+The RAG database is built once at ingestion and reused for every query — it is never rebuilt
+per issue. When the corpus changes (re-run `fetch.py` to pull new issues), refresh the index
+incrementally:
+
+```bash
+python triage/scripts/build_corpus.py --refresh
+```
+
+`--refresh` adds newly-ingested issues (only their texts are embedded), deletes evicted ones,
+and rebuilds the small doc collection — no duplicate-ID errors, no stale entries. At startup
+`TriageTools` also warns (and `index_stats()` reports `missing`/`extra`) if the persisted
+corpus and the index have drifted apart, so you never silently triage against a stale index.
 
 ### 3. Run the demo
 
@@ -308,26 +325,43 @@ multi    ...         ...         ...             ...  ...       ...          ...
 | `langfuse` install dragged in opentelemetry packages that conflicted with chromadb's pinned versions | Pinned the whole `opentelemetry` stack to one version (1.45.0) so both libraries import cleanly |
 | A user query could try to override the system prompt or be unrelated to triage | Added an input guard (`guardrails/input_guard.py`): rule-based injection detection + an LLM relevance gate (binary verdict); rejected queries short-circuit the graph before any agent work |
 | Raw issue text embeds poorly as a retrieval query and cosine order ignores semantics | Added a query rewriter (`rag/rewrite.py`) and an LLM reranker (`rag/rerank.py`) over a candidate pool; measured via `--sweep-retrieval` |
+| Rebuilding the index over a grown corpus raised duplicate-ID errors and left evicted issues behind | Added `delete`/`clear` to `ChromaStore` and an incremental `sync_issue_index` (`build_corpus.py --refresh`); a startup staleness check warns when the corpus and index drift apart |
 
 ## Learnings
 
-- **Pin major library versions explicitly.** Renames/API breaks (mcp v2) silently break
-  integrations; a version pin in `pyproject.toml` plus an import smoke test catches it.
-- **Test embeddings must be geometrically distinct.** Cosine stores make collinear vectors
-  equidistant; use non-collinear vectors when asserting retrieval order.
-- **LangGraph channels are last-value by default.** Any key written by multiple concurrent
-  nodes needs a reducer (`Annotated[..., operator.add]`).
+- **Recommend, don't act.** The copilot stays a recommendation layer: no write tools, and the
+  structured `TriageDecision` JSON is the canonical output, which keeps the evaluation
+  contract stable and makes the system auditable.
+- **Decide the conversation boundary explicitly.** A conversational layer was considered and
+  deliberately rejected: single-turn, stateless triage keeps the pipeline deterministic and
+  the metrics comparable. Choose interactivity as a deliberate design decision, not an
+  afterthought.
+- **Guard the input boundary.** Validate every user query (rule-based prompt-injection
+  detection + an LLM relevance gate) before any agent or LLM work, and short-circuit on
+  rejection — it stops jailbreaks early and saves cost.
+- **Retrieval quality is measured, not assumed.** Query rewriting and a candidate-pool LLM
+  reranker sound plausible; they were validated with a strategy sweep
+  (`--sweep-retrieval`) before being turned on by default.
+- **Indexes are build artifacts, not per-query state.** The RAG DB is built once at
+  ingestion, refreshed incrementally when the corpus grows (`--refresh`), and staleness is
+  detected at startup so you never silently triage against old data.
+- **One model family + injectable components keeps everything testable.** The OpenAI-only
+  embedder, judge, rewriter, and reranker are uniform, and every LLM call is injectable, so
+  the whole suite runs offline and deterministically.
+- **Binary verdicts beat rating scales for auto-eval.** Per-metric, separate LLM calls
+  returning `yes`/`no` are simpler to aggregate and more reliable than 1-5 scores.
+- **Trace locally before adopting a platform.** A lightweight `Tracer` for per-node,
+  per-LLM, per-tool latency answered the questions we had; a hosted backend (Langfuse) is
+  only enabled behind env vars when deeper analysis is needed.
+- **Eval hygiene starts at ingestion.** Carving out a fixed-seed held-out set at fetch time —
+  and never letting it enter the corpus — keeps the vanilla-vs-multi comparison honest.
 - **Inject every LLM/embedding callable.** Constructing real clients eagerly couples tests
   to network + secrets; injectable fns keep the suite hermetic and fast.
-- **MCP content-block shape varies by return type.** A list result arrives as several JSON
-  text blocks; always parse defensively with a tolerant JSON parser.
-- **Recursive chunkers must preserve separators** to guarantee "no content loss"; verify by
-  asserting every paragraph of the source appears in some chunk.
-- **Lazy imports keep module import cheap** and make small test files load fast, while the
-  heavy dependencies (langchain-openai, chroma internals) stay out of the import path until
-  needed.
-- **Scripts should stay thin.** Put testable logic in library modules (`rag/index_build.py`,
-  `evals/runner.py`) and keep `scripts/` as argument parsing + orchestration.
+- **Scripts should stay thin.** Put testable logic in library modules
+  (`rag/index_build.py`, `evals/runner.py`) and keep `scripts/` as argument parsing +
+  orchestration.
+- **Pin major library versions explicitly.** Renames/API breaks (mcp v2) silently break
+  integrations; a version pin in `pyproject.toml` plus an import smoke test catches it.
 - **Run tests before committing every step**, and when a commit ships a broken test, reset
   it and recommit rather than piling on fix commits.
 
