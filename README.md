@@ -129,7 +129,7 @@ Requirements: Python 3.11+, a GitHub token for data fetching, and an OpenAI API 
 LLMs/embeddings.
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev]"        # add ",trace" to also install Langfuse (free tier)
 # put secrets in .env (gitignored) or the environment
 GITHUB_TOKEN=...  OPENAI_API_KEY=...
 ```
@@ -200,7 +200,9 @@ call is timed), and the demo/notebook flow.
 
 `notebooks/demo.ipynb` steps through the whole pipeline in cells: dataset (fetch or reuse)
 → build indexes → triage a held-out issue → inspect the trace → vanilla-vs-multi
-comparison. Open it with `jupyter notebook` or VS Code and run cells top to bottom.
+comparison. Open it with `jupyter notebook` or VS Code and run cells top to bottom. The
+graph-invoke cells pass `graph_config()`, so Langfuse traces (if configured) are captured
+from the notebook too.
 
 ## Observability with existing frameworks
 
