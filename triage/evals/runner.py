@@ -267,6 +267,7 @@ def sweep_doc_chunking(
             embedder=embedder, issue_store=issue_store, doc_store=doc_store
         )
         recalls: list[float] = []
+        precisions: list[float] = []
         relevance: list[float] = []
         for record in held_out:
             query = f"{record.title}\n\n{record.body}"
@@ -278,9 +279,9 @@ def sweep_doc_chunking(
             issue_matches, doc_matches = retriever.retrieve(
                 query, k_issues=10, k_docs=3
             )
-            recalls.append(
-                recall_at_k([match.id for match in issue_matches], relevant)
-            )
+            retrieved_ids = [match.id for match in issue_matches]
+            recalls.append(recall_at_k(retrieved_ids, relevant))
+            precisions.append(precision_at_k(retrieved_ids, relevant))
             score = judge.score(
                 "context_relevance",
                 query,
@@ -292,7 +293,75 @@ def sweep_doc_chunking(
             {
                 **config,
                 "recall_at_10": round(_mean(recalls), 4),
+                "precision_at_10": round(_mean(precisions), 4),
                 "context_relevance": round(_mean(relevance), 4),
+            }
+        )
+    return rows
+
+
+def sweep_retrieval_strategies(
+    processed_dir: Path,
+    indexes_dir: Path,
+    embed_fn: Any | None = None,
+    llm_respond: Any | None = None,
+    rewrite_respond: Any | None = None,
+    rerank_respond: Any | None = None,
+    judge_respond: Any | None = None,
+    held_out_limit: int | None = None,
+) -> list[dict[str, Any]]:
+    """Compare base / rewrite / rerank / rewrite+rerank on retrieval quality."""
+    corpus = load_records(processed_dir / "issues_corpus.json", IssueRecord)
+    held_out = load_records(processed_dir / "issues_held_out.json", IssueRecord)[
+        :held_out_limit
+    ]
+    judge = Judge(judge_respond)
+    rows: list[dict[str, Any]] = []
+    for name, use_rewrite, use_rerank in (
+        ("base", False, False),
+        ("rewrite", True, False),
+        ("rerank", False, True),
+        ("rewrite+rerank", True, True),
+    ):
+        tools = TriageTools(
+            indexes_dir=indexes_dir,
+            processed_dir=processed_dir,
+            embed_fn=embed_fn,
+            llm_respond=llm_respond,
+            rewriter=QueryRewriter(rewrite_respond) if use_rewrite else None,
+            reranker=Reranker(rerank_respond) if use_rerank else None,
+        )
+        retriever = tools.retriever()
+        recalls: list[float] = []
+        precisions: list[float] = []
+        judge_scores: dict[str, list[float]] = {metric: [] for metric in METRICS}
+        for record in held_out:
+            query = f"{record.title}\n\n{record.body}"
+            relevant = {
+                f"{item.repo}#{item.number}"
+                for item in corpus
+                if set(item.labels) & set(record.labels)
+            }
+            issue_matches, doc_matches = retriever.retrieve(
+                query, k_issues=10, k_docs=3
+            )
+            retrieved_ids = [match.id for match in issue_matches]
+            recalls.append(recall_at_k(retrieved_ids, relevant))
+            precisions.append(precision_at_k(retrieved_ids, relevant))
+            judged = judge.evaluate(
+                query, "", _context_text(issue_matches, doc_matches)
+            )
+            for metric in METRICS:
+                judge_scores[metric].append(float(judged[metric].score))
+        rows.append(
+            {
+                "strategy": name,
+                "recall_at_10": round(_mean(recalls), 4),
+                "precision_at_10": round(_mean(precisions), 4),
+                **{
+                    metric: round(_mean(judge_scores[metric]), 4)
+                    for metric in METRICS
+                },
             }
         )
     return rows

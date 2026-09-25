@@ -1,7 +1,12 @@
 import json
 
 from langchain_core.messages import AIMessage
-from triage.evals.runner import Components, EvaluationRunner, sweep_doc_chunking
+from triage.evals.runner import (
+    Components,
+    EvaluationRunner,
+    sweep_doc_chunking,
+    sweep_retrieval_strategies,
+)
 from triage.mcp_tools.tools import TriageTools
 from triage.persist import save_records
 from triage.rag.embed import Embedder
@@ -185,5 +190,29 @@ def test_sweep_doc_chunking(tmp_path):
     assert len(rows) == 2
     for row in rows:
         assert "recall_at_10" in row
-        assert "context_relevance" in row
+        assert "precision_at_10" in row
+        assert row["context_relevance"] == 1.0
+
+
+def test_sweep_retrieval_strategies(tmp_path):
+    make_env(tmp_path)
+    rows = sweep_retrieval_strategies(
+        tmp_path / "processed",
+        tmp_path / "indexes",
+        embed_fn=fake_embed,
+        llm_respond=lambda prompt: json.dumps({"type": "bug", "confidence": 0.9}),
+        rewrite_respond=lambda prompt: json.dumps({"query": "crash"}),
+        rerank_respond=lambda prompt: json.dumps({"order": [0], "reason": "ok"}),
+        judge_respond=fixed_judge,
+        held_out_limit=1,
+    )
+    assert [row["strategy"] for row in rows] == [
+        "base",
+        "rewrite",
+        "rerank",
+        "rewrite+rerank",
+    ]
+    for row in rows:
+        assert "recall_at_10" in row
+        assert "precision_at_10" in row
         assert row["context_relevance"] == 1.0

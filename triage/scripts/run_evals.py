@@ -8,7 +8,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from triage.evals.runner import EvaluationRunner, format_results_table, sweep_doc_chunking
+from triage.evals.runner import (
+    EvaluationRunner,
+    format_results_table,
+    sweep_doc_chunking,
+    sweep_retrieval_strategies,
+)
 from triage.rag.embed import Embedder
 
 PROCESSED = Path("triage/data/processed")
@@ -20,6 +25,9 @@ def main() -> None:
     parser.add_argument("--processed", type=Path, default=PROCESSED)
     parser.add_argument("--indexes", type=Path, default=INDEXES)
     parser.add_argument("--sweep", action="store_true", help="run the doc-chunking sweep")
+    parser.add_argument(
+        "--sweep-retrieval", action="store_true", help="run the retrieval-strategy sweep"
+    )
     parser.add_argument("--held-out-limit", type=int, default=None)
     args = parser.parse_args()
 
@@ -34,6 +42,16 @@ def main() -> None:
             args.processed, args.indexes, embedder, held_out_limit=args.held_out_limit
         )
         print("doc-chunking sweep:")
+        for row in rows:
+            print(row)
+
+    if args.sweep_retrieval:
+        rows = sweep_retrieval_strategies(
+            args.processed,
+            args.indexes,
+            held_out_limit=args.held_out_limit,
+        )
+        print("retrieval-strategy sweep:")
         for row in rows:
             print(row)
 
