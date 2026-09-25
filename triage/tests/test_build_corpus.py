@@ -1,6 +1,20 @@
+import importlib.util
+import sys
+from pathlib import Path
+
+from triage.persist import save_records
 from triage.rag.embed import Embedder
-from triage.rag.index_build import build_doc_index, build_issue_index
+from triage.rag.index_build import build_doc_index, build_issue_index, sync_issue_index
 from triage.rag.parse import IssueComment, IssueRecord, ProcessDoc
+from triage.rag.store import ChromaStore
+
+
+def load_script(name: str):
+    path = Path(__file__).resolve().parents[1] / "scripts" / f"{name}.py"
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def make_issue(repo: str, number: int, body: str = "crash on empty frame") -> IssueRecord:
@@ -59,9 +73,6 @@ def test_build_indexes_embedded_and_queryable(tmp_path):
 
 
 def test_refresh_grows_index_without_duplicate_error(tmp_path):
-    from triage.rag.index_build import sync_issue_index
-    from triage.rag.store import ChromaStore
-
     embedder = Embedder(embed_fn=fake_embed_fn)
     build_issue_index([make_issue("x/y", 1), make_issue("x/y", 2)], embedder, tmp_path / "indexes")
     stats = sync_issue_index(
@@ -73,3 +84,33 @@ def test_refresh_grows_index_without_duplicate_error(tmp_path):
     assert stats["removed"] == 0
     ids = set(ChromaStore(tmp_path / "indexes" / "issues", "issues").ids())
     assert ids == {"x/y#1", "x/y#2", "x/y#3"}
+
+
+def test_build_corpus_cli_refresh_end_to_end(tmp_path, monkeypatch, capsys):
+    build = load_script("build_corpus")
+    processed = tmp_path / "processed"
+    indexes = tmp_path / "indexes"
+
+    def fake_embedder_factory(cache_path=None):
+        return Embedder(embed_fn=fake_embed_fn)
+
+    monkeypatch.setattr(build, "Embedder", fake_embedder_factory)
+
+    corpus = [make_issue("x/y", 1), make_issue("x/y", 2)]
+    docs = [ProcessDoc(repo="x/y", path="CONTRIBUTING.md", content="# Intro\nhow to contribute.\n")]
+    save_records(corpus, processed / "issues_corpus.json")
+    save_records(docs, processed / "process_docs.json")
+
+    argv = ["build_corpus", "--processed", str(processed), "--indexes", str(indexes)]
+    monkeypatch.setattr(sys, "argv", argv)
+    build.main()
+    assert set(ChromaStore(indexes / "issues", "issues").ids()) == {"x/y#1", "x/y#2"}
+    assert "built issue index" in capsys.readouterr().out
+
+    grown = [make_issue("x/y", 1), make_issue("x/y", 2), make_issue("x/y", 3)]
+    save_records(grown, processed / "issues_corpus.json")
+    refresh_argv = argv + ["--refresh"]
+    monkeypatch.setattr(sys, "argv", refresh_argv)
+    build.main()
+    assert set(ChromaStore(indexes / "issues", "issues").ids()) == {"x/y#1", "x/y#2", "x/y#3"}
+    assert "added=1" in capsys.readouterr().out

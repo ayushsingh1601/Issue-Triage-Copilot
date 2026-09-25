@@ -64,3 +64,18 @@ def test_sync_noop_when_in_sync(tmp_path):
     stats = sync_issue_index(records, embedder, tmp_path / "indexes")
     assert stats == {"added": 0, "removed": 0, "unchanged": 1}
     assert calls["n"] == 0
+
+
+def test_double_sync_is_idempotent(tmp_path):
+    embed_fn, calls = counting_embed()
+    embedder = Embedder(embed_fn=embed_fn)
+    build_issue_index([make_issue("x/y", 1)], embedder, tmp_path / "indexes")
+
+    grown = [make_issue("x/y", 1), make_issue("x/y", 2)]
+    first = sync_issue_index(grown, embedder, tmp_path / "indexes")
+    assert first == {"added": 1, "removed": 0, "unchanged": 1}
+
+    calls["n"] = 0
+    second = sync_issue_index(grown, embedder, tmp_path / "indexes")
+    assert second == {"added": 0, "removed": 0, "unchanged": 2}
+    assert calls["n"] == 0
