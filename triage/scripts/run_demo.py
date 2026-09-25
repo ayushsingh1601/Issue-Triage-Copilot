@@ -12,6 +12,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from triage.guardrails.input_guard import InputGuard
+from triage.logging import silence_libraries
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
 from triage.memory.session import Session
@@ -66,6 +67,7 @@ async def run_triage(
 
 def main() -> None:
     load_env_file()
+    silence_libraries()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--processed", type=Path, default=PROCESSED)
     parser.add_argument("--indexes", type=Path, default=INDEXES)

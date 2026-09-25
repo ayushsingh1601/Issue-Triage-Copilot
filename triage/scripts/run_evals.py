@@ -14,6 +14,7 @@ from triage.evals.runner import (
     sweep_doc_chunking,
     sweep_retrieval_strategies,
 )
+from triage.logging import silence_libraries
 from triage.rag.embed import Embedder
 
 PROCESSED = Path("triage/data/processed")
@@ -21,6 +22,7 @@ INDEXES = Path("triage/data/indexes")
 
 
 def main() -> None:
+    silence_libraries()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--processed", type=Path, default=PROCESSED)
     parser.add_argument("--indexes", type=Path, default=INDEXES)
