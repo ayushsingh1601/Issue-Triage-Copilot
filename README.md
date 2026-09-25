@@ -255,7 +255,9 @@ call is timed), and the demo/notebook flow.
 → build indexes → triage a held-out issue → inspect the trace → vanilla-vs-multi
 comparison. Open it with `jupyter notebook` or VS Code and run cells top to bottom. The
 graph-invoke cells pass `graph_config()`, so Langfuse traces (if configured) are captured
-from the notebook too.
+from the notebook too. The build-indexes cell clears the collections first, so re-running it
+is safe; after fetching new issues, prefer the incremental CLI refresh
+(`build_corpus.py --refresh`).
 
 ## Observability with existing frameworks
 
