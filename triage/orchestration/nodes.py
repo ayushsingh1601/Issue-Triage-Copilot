@@ -1,6 +1,10 @@
-"""Stub graph nodes; real implementations land in later steps."""
+"""Graph nodes; specialist nodes are wired to the MCP toolbox via factories."""
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+
+from triage.agents.historical import HistoricalAgent
+from triage.mcp_tools.langchain import AgentToolbox
 from triage.orchestration.state import TriageState
 
 
@@ -22,3 +26,20 @@ def decide_node(state: TriageState) -> dict:
 
 def human_in_loop_node(state: TriageState) -> dict:
     return {"needs_human": True}
+
+
+def make_historical_node(
+    toolbox: AgentToolbox,
+    agent: HistoricalAgent | None = None,
+) -> Callable[[TriageState], Awaitable[dict]]:
+    agent = agent or HistoricalAgent()
+
+    async def node(state: TriageState) -> dict:
+        tools = await toolbox.group("historical")
+        evidence = await agent.run(state.issue, tools)
+        return {
+            "historical_evidence": evidence["similar_issues"],
+            "citations": evidence["citations"],
+        }
+
+    return node
