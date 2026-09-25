@@ -8,14 +8,8 @@ from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from triage.agents.react import react_loop
 from triage.jsonutil import parse_json_documents
+from triage.prompts.historical import SYSTEM_PROMPT
 from triage.tracing import Tracer
-
-SYSTEM_PROMPT = (
-    "You are a historical-context specialist for issue triage. "
-    "Use search_past_issues to find similar resolved issues, then get_issue_details "
-    "to inspect the most relevant threads. Ground your summary in cited issue IDs "
-    "like repo#number."
-)
 
 
 def default_model() -> Any:

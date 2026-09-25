@@ -104,7 +104,7 @@ class ProcessScriptedModel:
 
 
 def fixed_judge(prompt):
-    return json.dumps({"score": 4, "reason": "ok"})
+    return json.dumps({"verdict": "yes", "reason": "ok"})
 
 
 def make_env(tmp_path):
@@ -153,9 +153,9 @@ def test_comparison_runs_both_systems(tmp_path):
         assert result.label_top1 == 1.0
         assert result.label_top3 == 1.0
         assert result.action_rouge_l >= 0.5
-        assert result.answer_relevancy == 4.0
-        assert result.context_relevance == 4.0
-        assert result.groundedness == 4.0
+        assert result.answer_relevancy == 1.0
+        assert result.context_relevance == 1.0
+        assert result.groundedness == 1.0
         assert 0.0 <= result.recall_at_k <= 1.0
         assert result.latency_p95 >= 0.0
 
@@ -186,4 +186,4 @@ def test_sweep_doc_chunking(tmp_path):
     for row in rows:
         assert "recall_at_10" in row
         assert "context_relevance" in row
-        assert row["context_relevance"] == 4.0
+        assert row["context_relevance"] == 1.0

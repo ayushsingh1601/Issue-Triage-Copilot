@@ -1,4 +1,4 @@
-"""Prompts for the LLM-as-judge."""
+"""Prompts for the LLM-as-judge (binary verdicts)."""
 from __future__ import annotations
 
 METRICS = ["answer_relevancy", "context_relevance", "groundedness"]
@@ -15,7 +15,9 @@ def build_judge_prompt(metric: str, query: str, decision: str, context: str = ""
 
 METRIC: {metric}
 {_SCORE_DESCRIPTIONS.get(metric, "")}
-Score from 1 (poor) to 5 (excellent).
+
+Answer with a binary verdict. Respond with JSON only:
+{{"verdict": "yes" if the metric holds, "no" otherwise, "reason": "<one sentence>"}}
 
 NEW ISSUE:
 {query}
@@ -24,6 +26,4 @@ COPIED DECISION:
 {decision}
 
 RETRIEVED CONTEXT:
-{context or "none"}
-
-Respond with JSON only: {{"score": <1-5>, "reason": "<one sentence>"}}"""
+{context or "none"}"""

@@ -23,6 +23,7 @@ dev = [
     "pytest-asyncio>=0.23",
     "ruff>=0.6",
 ]
+trace = ["langfuse>=2"]
 
 [tool.pytest.ini_options]
 testpaths = ["triage/tests"]

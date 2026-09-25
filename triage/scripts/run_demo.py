@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
 from triage.memory.session import Session
+from triage.observability import graph_config
 from triage.orchestration.graph import build_graph
 from triage.orchestration.state import TriageState
 from triage.persist import load_records
@@ -53,7 +54,10 @@ async def run_triage(
 ) -> dict[str, Any]:
     async with AgentToolbox(tools) as box:
         graph = build_graph(toolbox=box, tracer=tracer).compile()
-        return await graph.ainvoke(TriageState(issue=query, issue_id=issue_id))
+        return await graph.ainvoke(
+            TriageState(issue=query, issue_id=issue_id),
+            config=graph_config(),
+        )
 
 
 def main() -> None:

@@ -10,6 +10,7 @@ from typing import Any
 
 from triage.jsonutil import extract_json
 from triage.persist import load_records
+from triage.prompts.classify import build_classify_prompt
 from triage.rag.embed import Embedder
 from triage.rag.parse import IssueRecord
 from triage.rag.store import ChromaStore
@@ -47,11 +48,7 @@ class TriageTools:
 
     def classify_issue(self, issue: str) -> dict[str, Any]:
         types = self._label_types()
-        prompt = (
-            f"Classify the following issue into exactly one of these types: {types}.\n"
-            'Respond with JSON only: {"type": "<one type>", "confidence": <0-1 float>}.\n\n'
-            f"ISSUE:\n{issue}"
-        )
+        prompt = build_classify_prompt(issue, types)
         raw = self._llm_respond(prompt)
         data = json.loads(extract_json(raw))
         return {"type": data["type"], "confidence": float(data["confidence"])}

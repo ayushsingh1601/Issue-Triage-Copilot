@@ -19,6 +19,7 @@ from triage.evals.metrics import action_overlap, label_accuracy, recall_at_k
 from triage.guardrails.schema import TriageDecision
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
+from triage.observability import graph_config
 from triage.orchestration.graph import build_graph
 from triage.orchestration.nodes import default_orchestrator_respond
 from triage.orchestration.state import TriageState
@@ -42,6 +43,7 @@ class Components:
     historical_model: Any | None = None
     process_model: Any | None = None
     judge_respond: Any | None = None
+    judge_responds: dict[str, Any] | None = None
 
 
 @dataclass
@@ -105,7 +107,7 @@ class EvaluationRunner:
         self._vanilla_agent = VanillaAgent(self._vanilla_respond)
         self._historical_agent = HistoricalAgent(self._historical_model)
         self._process_agent = ProcessAgent(self._process_model)
-        self._judge = Judge(comp.judge_respond)
+        self._judge = Judge(comp.judge_respond, comp.judge_responds)
 
     def run_comparison(self, limit: int | None = None) -> dict[str, SystemResults]:
         return {
@@ -186,7 +188,10 @@ class EvaluationRunner:
                 process_agent=self._process_agent,
                 orchestrator_respond=self._orchestrator_respond,
             ).compile()
-            result = await graph.ainvoke(TriageState(issue=query, issue_id=issue_id))
+            result = await graph.ainvoke(
+                TriageState(issue=query, issue_id=issue_id),
+                config=graph_config(),
+            )
         assert result["decision"] is not None
         return result["decision"]
 

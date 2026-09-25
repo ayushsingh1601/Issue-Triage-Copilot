@@ -8,13 +8,8 @@ from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from triage.agents.react import react_loop
 from triage.jsonutil import parse_json_documents
+from triage.prompts.process import SYSTEM_PROMPT
 from triage.tracing import Tracer
-
-SYSTEM_PROMPT = (
-    "You are a process specialist for issue triage. "
-    "Use get_runbook_steps with the classified issue type to retrieve runbook steps "
-    "from the project's process docs. Cite doc sections by their source id."
-)
 
 
 def default_model() -> Any:

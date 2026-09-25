@@ -114,11 +114,12 @@ triage/
   mcp_tools/  server, tools, langchain (AgentToolbox + tool groups)
   memory/     store (evidence cache), session
   guardrails/ citation_verify, schema, confidence
-  prompts/    orchestrator, historical, process, vanilla, judge
+  prompts/    orchestrator, historical, process, vanilla, judge, classify
   evals/      dataset (held-out split), judge, metrics, runner
   scripts/    fetch, build_corpus, run_demo, run_evals
   tests/      per-module pytest files
   tracing.py  local latency tracer (per-node / per-LLM / per-tool)
+  observability.py  optional Langfuse wiring (free tier)
 notebooks/    demo.ipynb (run the full pipeline cell by cell)
 ```
 
@@ -203,24 +204,32 @@ comparison. Open it with `jupyter notebook` or VS Code and run cells top to bott
 
 ## Observability with existing frameworks
 
-The local `Tracer` needs no accounts or servers. If you want a hosted trace UI, the
-standard LLM observability platforms plug into LangChain/LangGraph directly:
+The local `Tracer` needs no accounts or servers. For a hosted trace UI, **Langfuse** is
+open-source and free (self-host with Docker, or its free cloud tier):
 
-- **Langfuse** (open-source, self-hostable): `pip install langfuse`, set
-  `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST`, then register its
-  LangChain `CallbackHandler` or enable its OpenTelemetry instrumentation before invoking
-  the graph.
-- **LangSmith**: set `LANGSMITH_API_KEY` (plus `LANGSMITH_TRACING=true`), and LangChain /
-  LangGraph calls are traced automatically without code changes.
+```bash
+pip install -e ".[trace]"        # or: pip install langfuse
+export LANGFUSE_PUBLIC_KEY=...
+export LANGFUSE_SECRET_KEY=...
+export LANGFUSE_HOST=https://cloud.langfuse.com   # or your self-hosted URL
+```
 
-The project does not bundle these; enable them per the platform's install instructions.
+When those two keys are set, `triage/observability.py` automatically attaches Langfuse's
+LangChain callback to every graph invocation (demo, notebook, and eval runner) — no code
+changes needed. When they are unset, the project runs on the local `Tracer` only.
+
+**LangSmith** is the alternative: set `LANGSMITH_API_KEY` (+ `LANGSMITH_TRACING=true`) and
+LangChain/LangGraph calls are traced automatically. Both have free tiers; Langfuse is the
+open-source / self-hostable choice.
 
 ## Evaluation design
 
 - **Held-out set** — 15-20% of resolved issues are carved out at ingestion time and never
   enter the corpus; they are treated as new issues at eval time.
-- **LLM-as-judge** (`gpt-4o-mini`) on every held-out issue: answer relevancy, context
-  relevance, groundedness.
+- **LLM-as-judge** (`gpt-4o-mini`) on every held-out issue, with a separate LLM call per
+  metric. Each metric returns a **binary verdict** (`yes`/`no`) — answer relevancy, context
+  relevance, groundedness — which is converted to a 1/0 score. A different model/respond can
+  be configured per metric via `Judge(responds={metric: fn, ...})`.
 - **Objective metrics** — label accuracy (top-1/top-3 vs actual applied labels), action
   overlap (ROUGE-L + entity match vs the actual closing comment / linked PR), and retrieval
   recall@k.
@@ -255,6 +264,8 @@ multi    ...         ...         ...             ...                 ...  ...   
 | First pass committed a step with a wrong metric expectation (`recall_at_k` semantics) | Re-ran tests before commit, reset the bad commit, and recommitted cleanly |
 | MCP tool results exposed JSON in different shapes (scalar dict vs list) through LangChain content blocks | Centralized text extraction in `content_text()` and multi-doc parsing in `parse_json_documents()` |
 | No visibility into which stage of the agent flow was slow | Added a local `Tracer` (`tracing.py`) wired into the graph nodes and ReAct loop, recording per-node / per-LLM / per-tool latencies with an avg/p95 summary |
+| Prompts were scattered across agent/tool modules | Consolidated every prompt into `prompts/` (classify, historical, process, orchestrator, vanilla, judge) |
+| `langfuse` install dragged in opentelemetry packages that conflicted with chromadb's pinned versions | Pinned the whole `opentelemetry` stack to one version (1.45.0) so both libraries import cleanly |
 
 ## Learnings
 
