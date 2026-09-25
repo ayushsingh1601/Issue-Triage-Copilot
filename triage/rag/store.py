@@ -60,3 +60,13 @@ class ChromaStore:
 
     def ids(self) -> list[str]:
         return self._collection.get(include=[])["ids"]
+
+    def delete(self, ids: list[str]) -> None:
+        if not ids:
+            return
+        self._collection.delete(ids=ids)
+
+    def clear(self) -> None:
+        ids = self._collection.get(include=[])["ids"]
+        if ids:
+            self._collection.delete(ids=ids)

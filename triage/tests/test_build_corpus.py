@@ -56,3 +56,20 @@ def test_build_indexes_embedded_and_queryable(tmp_path):
     assert matches[0].id == "x/y#7"
     assert matches[0].metadata["labels"] == "bug"
     assert matches[0].metadata["number"] == 7
+
+
+def test_refresh_grows_index_without_duplicate_error(tmp_path):
+    from triage.rag.index_build import sync_issue_index
+    from triage.rag.store import ChromaStore
+
+    embedder = Embedder(embed_fn=fake_embed_fn)
+    build_issue_index([make_issue("x/y", 1), make_issue("x/y", 2)], embedder, tmp_path / "indexes")
+    stats = sync_issue_index(
+        [make_issue("x/y", 1), make_issue("x/y", 2), make_issue("x/y", 3)],
+        embedder,
+        tmp_path / "indexes",
+    )
+    assert stats["added"] == 1
+    assert stats["removed"] == 0
+    ids = set(ChromaStore(tmp_path / "indexes" / "issues", "issues").ids())
+    assert ids == {"x/y#1", "x/y#2", "x/y#3"}

@@ -70,3 +70,34 @@ def test_persistent_across_instances(tmp_path):
     reloaded = make_store(tmp_path)
     assert reloaded.count() == 1
     assert reloaded.query([1.0, 0.0], k=1)[0].id == "a"
+
+
+def test_delete_ids(tmp_path):
+    store = make_store(tmp_path)
+    store.add(
+        ids=["a", "b"],
+        texts=["apple", "banana"],
+        embeddings=[[1.0, 0.0], [0.0, 1.0]],
+        metadatas=[{"repo": "x"}, {"repo": "y"}],
+    )
+    store.delete(["a"])
+    assert store.ids() == ["b"]
+
+
+def test_delete_empty_is_noop(tmp_path):
+    store = make_store(tmp_path)
+    store.add(ids=["a"], texts=["apple"], embeddings=[[1.0, 0.0]], metadatas=[{"repo": "x"}])
+    store.delete([])
+    assert store.ids() == ["a"]
+
+
+def test_clear(tmp_path):
+    store = make_store(tmp_path)
+    store.add(
+        ids=["a", "b"],
+        texts=["x", "y"],
+        embeddings=[[1.0, 0.0], [0.0, 1.0]],
+        metadatas=[{"repo": "x"}, {"repo": "y"}],
+    )
+    store.clear()
+    assert store.count() == 0

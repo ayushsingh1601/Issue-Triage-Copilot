@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
@@ -51,6 +52,7 @@ class TriageTools:
         self._llm_respond = llm_respond or default_llm_respond()
         self._rewriter = rewriter
         self._reranker = reranker
+        self._warn_if_stale()
 
     def classify_issue(self, issue: str) -> dict[str, Any]:
         types = self._label_types()
@@ -171,6 +173,25 @@ class TriageTools:
     def _label_types(self, limit: int = 6) -> list[str]:
         counter = Counter(label for r in self._records.values() for label in r.labels)
         return [label for label, _ in counter.most_common(limit)] or DEFAULT_ISSUE_TYPES
+
+    def index_stats(self) -> dict[str, int]:
+        indexed = set(self._issue_store.ids())
+        corpus = set(self._records)
+        return {
+            "corpus": len(corpus),
+            "indexed": len(indexed),
+            "missing": len(corpus - indexed),
+            "extra": len(indexed - corpus),
+        }
+
+    def _warn_if_stale(self) -> None:
+        missing = set(self._records) - set(self._issue_store.ids())
+        if missing:
+            print(
+                f"WARNING: index is stale — {len(missing)} corpus issues are not in the "
+                "index; run `build_corpus.py --refresh`",
+                file=sys.stderr,
+            )
 
     def known_issue_ids(self) -> set[str]:
         return set(self._records)

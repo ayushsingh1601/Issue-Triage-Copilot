@@ -157,3 +157,36 @@ def test_mcp_server_calls_tools(tmp_path):
     assert "Bug 1" in text(details)
     patterns = run(server.call_tool("get_resolution_patterns", {"issue_type": "bug"}))
     assert '"count": 3' in text(patterns)
+
+
+def test_stale_index_warns(tmp_path, capsys):
+    from triage.mcp_tools.tools import TriageTools
+
+    def fake_embed(texts):
+        return [[1.0, 0.0] for _ in texts]
+
+    record = make_issue("x/y", 1, labels=["bug"])
+    save_records([record], tmp_path / "processed" / "issues_corpus.json")
+    store = ChromaStore(tmp_path / "indexes" / "issues", "issues")
+    store.add(
+        ids=["a/b#99"],
+        texts=["unrelated"],
+        embeddings=[[1.0, 0.0]],
+        metadatas=[{"repo": "a/b"}],
+    )
+    doc_store = ChromaStore(tmp_path / "indexes" / "docs", "docs")
+    doc_store.add(
+        ids=["CONTRIBUTING.md#top#0"],
+        texts=["# Contributing"],
+        embeddings=[[1.0, 0.0]],
+        metadatas=[{"repo": "x/y", "path": "CONTRIBUTING.md", "heading_path": ""}],
+    )
+    tools = TriageTools(
+        indexes_dir=tmp_path / "indexes",
+        processed_dir=tmp_path / "processed",
+        embed_fn=fake_embed,
+        llm_respond=lambda prompt: '{"type": "bug", "confidence": 0.9}',
+    )
+    captured = capsys.readouterr()
+    assert "index is stale" in captured.err
+    assert tools.index_stats()["missing"] == 1
