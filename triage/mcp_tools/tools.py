@@ -168,3 +168,12 @@ class TriageTools:
 
     def known_doc_ids(self) -> set[str]:
         return set(self._doc_store.ids())
+
+    def retriever(self):
+        from triage.rag.retriever import Retriever
+
+        return Retriever(
+            embedder=self._embedder,
+            issue_store=self._issue_store,
+            doc_store=self._doc_store,
+        )
