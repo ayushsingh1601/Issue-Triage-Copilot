@@ -6,6 +6,7 @@ import logging
 _NOISY_LOGGERS = [
     "openai",
     "httpx",
+    "httpx2",
     "httpcore",
     "httpcore2",
     "mcp",
