@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from langchain_core.messages import AIMessage
 from triage.agents.historical import HistoricalAgent
@@ -138,6 +139,20 @@ def test_historical_agent_collects_evidence_and_citations(tmp_path):
     assert "x/y#1" in evidence["summary"]
 
 
+def orchestrator_json() -> str:
+    return json.dumps(
+        {
+            "issue_id": "x/y#999",
+            "suggested_labels": ["bug"],
+            "triage_route": "bug",
+            "next_steps": ["step"],
+            "affected_modules": ["mod"],
+            "similar_issues": [],
+            "citations": ["x/y#1"],
+        }
+    )
+
+
 def test_historical_node_in_graph(tmp_path):
     tools = make_tools(tmp_path)
     agent = HistoricalAgent(model=ScriptedModel())
@@ -146,7 +161,10 @@ def test_historical_node_in_graph(tmp_path):
     async def run():
         async with AgentToolbox(tools) as box:
             graph = build_graph(
-                toolbox=box, historical_agent=agent, process_agent=process_agent
+                toolbox=box,
+                historical_agent=agent,
+                process_agent=process_agent,
+                orchestrator_respond=lambda prompt: orchestrator_json(),
             ).compile()
             state = TriageState(
                 issue="crash on empty frame",

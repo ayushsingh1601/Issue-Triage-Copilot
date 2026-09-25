@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from langchain_core.messages import AIMessage
 from triage.agents.historical import HistoricalAgent
@@ -116,6 +117,20 @@ def test_process_agent_returns_runbook_steps(tmp_path):
     assert "CONTRIBUTING.md" in evidence["summary"]
 
 
+def orchestrator_json() -> str:
+    return json.dumps(
+        {
+            "issue_id": "x/y#999",
+            "suggested_labels": ["bug"],
+            "triage_route": "bug",
+            "next_steps": ["step"],
+            "affected_modules": ["mod"],
+            "similar_issues": [],
+            "citations": ["CONTRIBUTING.md#Intro#0"],
+        }
+    )
+
+
 def test_process_node_in_graph(tmp_path):
     tools = make_tools(tmp_path)
     process = ProcessAgent(model=ScriptedModel())
@@ -124,7 +139,10 @@ def test_process_node_in_graph(tmp_path):
     async def run():
         async with AgentToolbox(tools) as box:
             graph = build_graph(
-                toolbox=box, historical_agent=historical, process_agent=process
+                toolbox=box,
+                historical_agent=historical,
+                process_agent=process,
+                orchestrator_respond=lambda prompt: orchestrator_json(),
             ).compile()
             state = TriageState(
                 issue="crash on empty frame",

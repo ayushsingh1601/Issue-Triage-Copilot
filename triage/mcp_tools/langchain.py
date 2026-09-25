@@ -19,6 +19,7 @@ TOOL_GROUPS = {
 
 class AgentToolbox:
     def __init__(self, tools: TriageTools) -> None:
+        self._tools = tools
         self._server = create_server(tools)
         self._session_cm = None
         self._session: ClientSession | None = None
@@ -37,3 +38,9 @@ class AgentToolbox:
         all_tools = await load_mcp_tools(self._session)
         by_name = {tool.name: tool for tool in all_tools}
         return [by_name[tool_name] for tool_name in TOOL_GROUPS[name]]
+
+    def issue_ids(self) -> set[str]:
+        return self._tools.known_issue_ids()
+
+    def doc_ids(self) -> set[str]:
+        return self._tools.known_doc_ids()

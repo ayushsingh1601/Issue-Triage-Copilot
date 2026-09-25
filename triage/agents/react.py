@@ -5,6 +5,7 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool
+from triage.jsonutil import content_text
 
 
 async def react_loop(
@@ -25,18 +26,10 @@ async def react_loop(
             result = await by_name[call["name"]].ainvoke(call["args"])
             messages.append(
                 ToolMessage(
-                    content=_content_text(result),
+                    content=content_text(result),
                     tool_call_id=call["id"],
                     name=call["name"],
                 )
             )
         messages.append(response)
     return messages
-
-
-def _content_text(result: Any) -> str:
-    if isinstance(result, list):
-        parts = [block["text"] for block in result if isinstance(block, dict) and "text" in block]
-        if parts:
-            return "\n".join(parts)
-    return str(result)

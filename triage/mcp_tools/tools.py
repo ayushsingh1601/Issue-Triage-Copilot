@@ -162,3 +162,9 @@ class TriageTools:
     def _label_types(self, limit: int = 6) -> list[str]:
         counter = Counter(label for r in self._records.values() for label in r.labels)
         return [label for label, _ in counter.most_common(limit)] or DEFAULT_ISSUE_TYPES
+
+    def known_issue_ids(self) -> set[str]:
+        return set(self._records)
+
+    def known_doc_ids(self) -> set[str]:
+        return set(self._doc_store.ids())

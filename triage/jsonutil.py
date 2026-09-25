@@ -27,3 +27,11 @@ def parse_json_documents(text: str) -> list[Any]:
         documents.append(document)
         index = end
     return documents
+
+
+def content_text(result: Any) -> str:
+    if isinstance(result, list):
+        parts = [block["text"] for block in result if isinstance(block, dict) and "text" in block]
+        if parts:
+            return "\n".join(parts)
+    return str(result)
