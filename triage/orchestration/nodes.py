@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 
 from triage.agents.historical import HistoricalAgent
+from triage.agents.process import ProcessAgent
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.orchestration.state import TriageState
 
@@ -39,6 +40,24 @@ def make_historical_node(
         evidence = await agent.run(state.issue, tools)
         return {
             "historical_evidence": evidence["similar_issues"],
+            "citations": evidence["citations"],
+        }
+
+    return node
+
+
+def make_process_node(
+    toolbox: AgentToolbox,
+    agent: ProcessAgent | None = None,
+) -> Callable[[TriageState], Awaitable[dict]]:
+    agent = agent or ProcessAgent()
+
+    async def node(state: TriageState) -> dict:
+        tools = await toolbox.group("process")
+        issue_type = state.classification.get("type", "")
+        evidence = await agent.run(issue_type, state.issue, tools)
+        return {
+            "runbook_steps": evidence["steps"],
             "citations": evidence["citations"],
         }
 

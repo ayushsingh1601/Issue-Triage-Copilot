@@ -1,7 +1,8 @@
 """Shared graph state for the multi-agent triage flow."""
 from __future__ import annotations
 
-from typing import Any
+import operator
+from typing import Annotated, Any
 
 from pydantic import BaseModel
 from triage.guardrails.schema import TriageDecision
@@ -16,4 +17,4 @@ class TriageState(BaseModel):
     decision: TriageDecision | None = None
     confidence: float = 0.0
     needs_human: bool = False
-    citations: list[str] = []
+    citations: Annotated[list[str], operator.add] = []

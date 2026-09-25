@@ -2,6 +2,7 @@ import asyncio
 
 from langchain_core.messages import AIMessage
 from triage.agents.historical import HistoricalAgent
+from triage.agents.process import ProcessAgent
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
 from triage.orchestration.graph import build_graph
@@ -98,6 +99,27 @@ class ScriptedModel:
         return self._steps.pop(0)
 
 
+class ProcessScriptedModel:
+    def __init__(self) -> None:
+        self._steps = [
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {
+                        "name": "get_runbook_steps",
+                        "args": {"issue_type": "bug", "query": "crash on empty frame"},
+                        "id": "call_1",
+                        "type": "tool_call",
+                    }
+                ],
+            ),
+            AIMessage(content="Runbook steps from CONTRIBUTING.md."),
+        ]
+
+    async def ainvoke(self, messages):
+        return self._steps.pop(0)
+
+
 def test_historical_agent_collects_evidence_and_citations(tmp_path):
     tools = make_tools(tmp_path)
     agent = HistoricalAgent(model=ScriptedModel())
@@ -119,11 +141,18 @@ def test_historical_agent_collects_evidence_and_citations(tmp_path):
 def test_historical_node_in_graph(tmp_path):
     tools = make_tools(tmp_path)
     agent = HistoricalAgent(model=ScriptedModel())
+    process_agent = ProcessAgent(model=ProcessScriptedModel())
 
     async def run():
         async with AgentToolbox(tools) as box:
-            graph = build_graph(toolbox=box, historical_agent=agent).compile()
-            state = TriageState(issue="crash on empty frame", issue_id="x/y#999")
+            graph = build_graph(
+                toolbox=box, historical_agent=agent, process_agent=process_agent
+            ).compile()
+            state = TriageState(
+                issue="crash on empty frame",
+                issue_id="x/y#999",
+                classification={"type": "bug", "confidence": 0.9},
+            )
             return await graph.ainvoke(state)
 
     result = asyncio.run(run())

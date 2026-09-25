@@ -1,0 +1,44 @@
+"""Process agent: runbook steps from process docs via ReAct over MCP."""
+from __future__ import annotations
+
+import os
+from typing import Any
+
+from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.tools import BaseTool
+from triage.agents.react import react_loop
+from triage.jsonutil import parse_json_documents
+
+SYSTEM_PROMPT = (
+    "You are a process specialist for issue triage. "
+    "Use get_runbook_steps with the classified issue type to retrieve runbook steps "
+    "from the project's process docs. Cite doc sections by their source id."
+)
+
+
+def default_model() -> Any:
+    from langchain_openai import ChatOpenAI
+
+    model = os.environ.get("OPENAI_FAST_MODEL", "gpt-4o-mini")
+    return ChatOpenAI(model=model, temperature=0)
+
+
+class ProcessAgent:
+    def __init__(self, model: Any | None = None) -> None:
+        self._model = model or default_model()
+
+    async def run(self, issue_type: str, query: str, tools: list[BaseTool]) -> dict[str, Any]:
+        prompt = f"Issue type: {issue_type}\n\nIssue:\n{query}"
+        transcript = await react_loop(self._model, SYSTEM_PROMPT, prompt, tools)
+        evidence: dict[str, Any] = {"steps": [], "citations": [], "summary": ""}
+        citations: list[str] = []
+        for message in transcript:
+            if isinstance(message, ToolMessage) and message.name == "get_runbook_steps":
+                for item in parse_json_documents(message.content):
+                    evidence["steps"].append(item)
+                    if item["source"] not in citations:
+                        citations.append(item["source"])
+            elif isinstance(message, AIMessage) and not message.tool_calls:
+                evidence["summary"] = message.content
+        evidence["citations"] = citations
+        return evidence
