@@ -2,7 +2,7 @@
 re-enters to decide, and routes to a human-in-the-loop edge on low confidence."""
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
 from langgraph.graph import END, START, StateGraph
 from triage.agents.historical import HistoricalAgent
@@ -22,6 +22,7 @@ from triage.orchestration.nodes import (
     process_node,
 )
 from triage.orchestration.state import TriageState
+from triage.tracing import Tracer
 
 
 def build_graph(
@@ -30,13 +31,35 @@ def build_graph(
     process_agent: ProcessAgent | None = None,
     orchestrator_respond: Callable[[str], str] | None = None,
     evidence_store: EvidenceStore | None = None,
+    tracer: Tracer | None = None,
 ) -> StateGraph:
     graph = StateGraph(TriageState)
     if toolbox:
-        graph.add_node("plan", make_plan_node(toolbox))
-        graph.add_node("historical", make_historical_node(toolbox, historical_agent))
-        graph.add_node("process", make_process_node(toolbox, process_agent))
-        graph.add_node("decide", make_decide_node(toolbox, orchestrator_respond, evidence_store))
+        graph.add_node("plan", _timed("node:plan", tracer, make_plan_node(toolbox, tracer)))
+        graph.add_node(
+            "historical",
+            _timed(
+                "node:historical",
+                tracer,
+                make_historical_node(toolbox, historical_agent, tracer),
+            ),
+        )
+        graph.add_node(
+            "process",
+            _timed(
+                "node:process",
+                tracer,
+                make_process_node(toolbox, process_agent, tracer),
+            ),
+        )
+        graph.add_node(
+            "decide",
+            _timed(
+                "node:decide",
+                tracer,
+                make_decide_node(toolbox, orchestrator_respond, evidence_store, tracer),
+            ),
+        )
     else:
         graph.add_node("plan", plan_node)
         graph.add_node("historical", historical_node)
@@ -55,3 +78,13 @@ def build_graph(
     )
     graph.add_edge("human_in_loop", END)
     return graph
+
+
+def _timed(name: str, tracer: Tracer | None, fn) -> Callable[[TriageState], Awaitable[dict]]:
+    async def wrapped(state: TriageState) -> dict:
+        if tracer is None:
+            return await fn(state)
+        with tracer.span(name):
+            return await fn(state)
+
+    return wrapped

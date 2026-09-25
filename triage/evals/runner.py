@@ -107,13 +107,14 @@ class EvaluationRunner:
         self._process_agent = ProcessAgent(self._process_model)
         self._judge = Judge(comp.judge_respond)
 
-    def run_comparison(self) -> dict[str, SystemResults]:
+    def run_comparison(self, limit: int | None = None) -> dict[str, SystemResults]:
         return {
-            "vanilla": self.evaluate_system("vanilla"),
-            "multi": self.evaluate_system("multi"),
+            "vanilla": self.evaluate_system("vanilla", limit),
+            "multi": self.evaluate_system("multi", limit),
         }
 
-    def evaluate_system(self, system: str) -> SystemResults:
+    def evaluate_system(self, system: str, limit: int | None = None) -> SystemResults:
+        records = self._held_out[:limit] if limit else self._held_out
         metric_scores: dict[str, list[float]] = {
             "label_top1": [],
             "label_top3": [],
@@ -125,7 +126,7 @@ class EvaluationRunner:
             metric_scores[metric] = []
         latencies: list[float] = []
 
-        for record in self._held_out:
+        for record in records:
             query = f"{record.title}\n\n{record.body}"
             issue_id = f"{record.repo}#{record.number}"
             start = time.perf_counter()
@@ -169,7 +170,7 @@ class EvaluationRunner:
         results.groundedness = _mean(metric_scores["groundedness"])
         results.recall_at_k = _mean(metric_scores["recall"])
         results.latency_p95 = _p95(latencies)
-        results.cost = self._cost_per_triage(system, len(self._held_out))
+        results.cost = self._cost_per_triage(system, len(records))
         return results
 
     def _run_vanilla(self, query: str, issue_id: str) -> TriageDecision:
@@ -289,3 +290,18 @@ def _p95(values: list[float]) -> float:
     ordered = sorted(values)
     index = min(len(ordered) - 1, int(0.95 * len(ordered)))
     return round(ordered[index], 6)
+
+
+def format_results_table(results: dict[str, SystemResults]) -> str:
+    header = ["system"] + list(next(iter(results.values())).to_dict())
+    rows = [
+        [system] + [str(value) for value in result.to_dict().values()]
+        for system, result in results.items()
+    ]
+    widths = [max(len(row[i]) for row in [header] + rows) for i in range(len(header))]
+    lines = ["  ".join(h.ljust(w) for h, w in zip(header, widths, strict=True))]
+    lines.append("  ".join("-" * w for w in widths))
+    lines += [
+        "  ".join(cell.ljust(w) for cell, w in zip(row, widths, strict=True)) for row in rows
+    ]
+    return "\n".join(lines)

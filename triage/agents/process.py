@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from triage.agents.react import react_loop
 from triage.jsonutil import parse_json_documents
+from triage.tracing import Tracer
 
 SYSTEM_PROMPT = (
     "You are a process specialist for issue triage. "
@@ -27,9 +28,15 @@ class ProcessAgent:
     def __init__(self, model: Any | None = None) -> None:
         self._model = model or default_model()
 
-    async def run(self, issue_type: str, query: str, tools: list[BaseTool]) -> dict[str, Any]:
+    async def run(
+        self,
+        issue_type: str,
+        query: str,
+        tools: list[BaseTool],
+        tracer: Tracer | None = None,
+    ) -> dict[str, Any]:
         prompt = f"Issue type: {issue_type}\n\nIssue:\n{query}"
-        transcript = await react_loop(self._model, SYSTEM_PROMPT, prompt, tools)
+        transcript = await react_loop(self._model, SYSTEM_PROMPT, prompt, tools, tracer=tracer)
         evidence: dict[str, Any] = {"steps": [], "citations": [], "summary": ""}
         citations: list[str] = []
         for message in transcript:

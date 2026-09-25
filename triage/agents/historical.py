@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.tools import BaseTool
 from triage.agents.react import react_loop
 from triage.jsonutil import parse_json_documents
+from triage.tracing import Tracer
 
 SYSTEM_PROMPT = (
     "You are a historical-context specialist for issue triage. "
@@ -28,8 +29,13 @@ class HistoricalAgent:
     def __init__(self, model: Any | None = None) -> None:
         self._model = model or default_model()
 
-    async def run(self, issue: str, tools: list[BaseTool]) -> dict[str, Any]:
-        transcript = await react_loop(self._model, SYSTEM_PROMPT, issue, tools)
+    async def run(
+        self,
+        issue: str,
+        tools: list[BaseTool],
+        tracer: Tracer | None = None,
+    ) -> dict[str, Any]:
+        transcript = await react_loop(self._model, SYSTEM_PROMPT, issue, tools, tracer=tracer)
         evidence: dict[str, Any] = {
             "similar_issues": [],
             "details": [],

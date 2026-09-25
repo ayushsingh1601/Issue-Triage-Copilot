@@ -118,6 +118,8 @@ triage/
   evals/      dataset (held-out split), judge, metrics, runner
   scripts/    fetch, build_corpus, run_demo, run_evals
   tests/      per-module pytest files
+  tracing.py  local latency tracer (per-node / per-LLM / per-tool)
+notebooks/    demo.ipynb (run the full pipeline cell by cell)
 ```
 
 ## How to run
@@ -170,6 +172,49 @@ python triage/scripts/run_evals.py                # vanilla vs multi-agent table
 python triage/scripts/run_evals.py --sweep        # + doc-chunking sweep
 ```
 
+### 5. Debug a run with tracing
+
+Every stage of the agent flow can be timed and inspected with the built-in local
+`Tracer` (`triage/tracing.py`). It records per-node, per-LLM and per-tool latencies and can
+summarize (count / avg / p95) or persist the raw events:
+
+```bash
+python triage/scripts/run_demo.py --held-out-index 0 --trace triage/data/indexes/trace.json
+```
+
+```python
+from triage.tracing import Tracer
+from triage.orchestration.graph import build_graph
+
+tracer = Tracer()
+# ... build + invoke the graph with build_graph(..., tracer=tracer)
+print(tracer.summary())          # {'node:plan': {...}, 'llm': {...}, 'tool': {...}, ...}
+tracer.save("triage/data/indexes/trace.json")
+```
+
+The `Tracer` is wired into the graph nodes, the ReAct loop (each LLM call and each MCP tool
+call is timed), and the demo/notebook flow.
+
+### 6. Run everything from a notebook
+
+`notebooks/demo.ipynb` steps through the whole pipeline in cells: dataset (fetch or reuse)
+→ build indexes → triage a held-out issue → inspect the trace → vanilla-vs-multi
+comparison. Open it with `jupyter notebook` or VS Code and run cells top to bottom.
+
+## Observability with existing frameworks
+
+The local `Tracer` needs no accounts or servers. If you want a hosted trace UI, the
+standard LLM observability platforms plug into LangChain/LangGraph directly:
+
+- **Langfuse** (open-source, self-hostable): `pip install langfuse`, set
+  `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST`, then register its
+  LangChain `CallbackHandler` or enable its OpenTelemetry instrumentation before invoking
+  the graph.
+- **LangSmith**: set `LANGSMITH_API_KEY` (plus `LANGSMITH_TRACING=true`), and LangChain /
+  LangGraph calls are traced automatically without code changes.
+
+The project does not bundle these; enable them per the platform's install instructions.
+
 ## Evaluation design
 
 - **Held-out set** — 15-20% of resolved issues are carved out at ingestion time and never
@@ -209,6 +254,7 @@ multi    ...         ...         ...             ...                 ...  ...   
 | A naive separator-splitting chunker silently dropped separator characters (content loss) | Re-wrote `_atomic_split` so each piece retains its trailing separator; concatenation of pieces equals the original text |
 | First pass committed a step with a wrong metric expectation (`recall_at_k` semantics) | Re-ran tests before commit, reset the bad commit, and recommitted cleanly |
 | MCP tool results exposed JSON in different shapes (scalar dict vs list) through LangChain content blocks | Centralized text extraction in `content_text()` and multi-doc parsing in `parse_json_documents()` |
+| No visibility into which stage of the agent flow was slow | Added a local `Tracer` (`tracing.py`) wired into the graph nodes and ReAct loop, recording per-node / per-LLM / per-tool latencies with an avg/p95 summary |
 
 ## Learnings
 

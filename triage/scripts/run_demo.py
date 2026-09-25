@@ -18,6 +18,7 @@ from triage.orchestration.graph import build_graph
 from triage.orchestration.state import TriageState
 from triage.persist import load_records
 from triage.rag.parse import IssueRecord
+from triage.tracing import Tracer
 
 PROCESSED = Path("triage/data/processed")
 INDEXES = Path("triage/data/indexes")
@@ -44,9 +45,14 @@ def summarize_actual(record: IssueRecord) -> dict[str, Any]:
     }
 
 
-async def run_triage(tools: TriageTools, query: str, issue_id: str) -> dict[str, Any]:
+async def run_triage(
+    tools: TriageTools,
+    query: str,
+    issue_id: str,
+    tracer: Tracer | None = None,
+) -> dict[str, Any]:
     async with AgentToolbox(tools) as box:
-        graph = build_graph(toolbox=box).compile()
+        graph = build_graph(toolbox=box, tracer=tracer).compile()
         return await graph.ainvoke(TriageState(issue=query, issue_id=issue_id))
 
 
@@ -60,6 +66,9 @@ def main() -> None:
     )
     parser.add_argument("--issue-id", default="fresh#1")
     parser.add_argument("--text", default="", help="title and body of a fresh issue")
+    parser.add_argument(
+        "--trace", type=Path, default=None, help="save a latency trace to this path"
+    )
     args = parser.parse_args()
 
     actual: dict[str, Any] | None = None
@@ -77,10 +86,17 @@ def main() -> None:
 
     tools = TriageTools(indexes_dir=args.indexes, processed_dir=args.processed)
     session = Session(issue_id=issue_id)
+    tracer = Tracer(path=args.trace) if args.trace else None
     session.record("start", query_length=len(query))
-    result = asyncio.run(run_triage(tools, query, issue_id))
+    result = asyncio.run(run_triage(tools, query, issue_id, tracer))
     session.record("end")
     session.decision = result["decision"].model_dump(mode="json") if result["decision"] else None
+    if tracer:
+        tracer.save()
+        print("TRACE SUMMARY (avg/p95 ms per stage):")
+        for name, stats in tracer.summary().items():
+            print(f"  {name}: count={stats['count']} avg={stats['avg_ms']} p95={stats['p95_ms']}")
+        print(f"  trace saved to {args.trace}")
 
     print("=" * 60)
     print(f"ISSUE {issue_id}  ({'held-out' if actual else 'fresh'})")
