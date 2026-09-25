@@ -68,6 +68,22 @@ default (`--no-guard` to disable).
 orchestration) and produce the same `TriageDecision` schema. The multi-agent uplift vs this
 baseline is the key evaluation result.
 
+### Retrieval enhancement (rewriter + reranker)
+
+Retrieval is enhanced by two optional, OpenAI-only components (both `gpt-4o-mini`,
+injectable for tests):
+
+- **Query rewriter** (`rag/rewrite.py`) — distills the raw issue into one clean search
+  query before embedding.
+- **LLM reranker** (`rag/rerank.py`) — pulls a candidate pool (**15 issues / 10 docs**) and
+  re-ranks it in a single call before returning the top-k.
+
+They are **on by default** and apply to both the vanilla pipeline and the multi-agent MCP
+tools (`search_past_issues`, `get_runbook_steps`). Opt out with `--no-rewrite` /
+`--no-rerank` in the demo, or `Components(use_retrieval_enhancements=False)` in the runner.
+Passing bare `Retriever(...)`/`TriageTools(...)` (no rewriter/reranker) keeps the old flat
+cosine retrieval.
+
 ## How the system works — full flow
 
 End-to-end pipeline, from raw GitHub data to a grounded triage decision:
@@ -125,13 +141,13 @@ Each stage maps to a commit in git history:
 ```
 triage/
   data/raw, data/processed, data/indexes   # indexes + datasets are gitignored
-  rag/        parse, chunk, embed, store, retriever, pipeline, index_build
+  rag/        parse, chunk, embed, store, retriever, pipeline, index_build, rewrite, rerank
   agents/     historical, process, vanilla, react
   orchestration/ state, graph, nodes, edges, human_in_loop
   mcp_tools/  server, tools, langchain (AgentToolbox + tool groups)
   memory/     store (evidence cache), session
   guardrails/ citation_verify, schema, confidence, input_guard
-  prompts/    orchestrator, historical, process, vanilla, judge, classify, guard
+  prompts/    orchestrator, historical, process, vanilla, judge, classify, guard, rewrite, rerank
   evals/      dataset (held-out split), judge, metrics, runner
   scripts/    fetch, build_corpus, run_demo, run_evals
   tests/      per-module pytest files
@@ -181,14 +197,16 @@ python triage/scripts/run_demo.py --text "Title\n\nbody of a brand-new issue"
 ```
 
 The input guard runs first (prompt-injection rules + relevance gate; `--no-guard` to
-disable). Prints the guard result, final decision JSON, the confidence gate result, and (for
-held-out issues) the actual resolution for comparison.
+disable), and retrieval uses the query rewriter + LLM reranker (on by default;
+`--no-rewrite` / `--no-rerank` to disable). Prints the guard result, final decision JSON,
+the confidence gate result, and (for held-out issues) the actual resolution for comparison.
 
 ### 4. Run the evaluation
 
 ```bash
-python triage/scripts/run_evals.py                # vanilla vs multi-agent table
-python triage/scripts/run_evals.py --sweep        # + doc-chunking sweep
+python triage/scripts/run_evals.py                 # vanilla vs multi-agent table
+python triage/scripts/run_evals.py --sweep         # doc-chunking sweep (recall + precision@10)
+python triage/scripts/run_evals.py --sweep-retrieval   # base / rewrite / rerank / rewrite+rerank
 ```
 
 ### 5. Debug a run with tracing
@@ -252,9 +270,11 @@ open-source / self-hostable choice.
   be configured per metric via `Judge(responds={metric: fn, ...})`.
 - **Objective metrics** — label accuracy (top-1/top-3 vs actual applied labels), action
   overlap (ROUGE-L + entity match vs the actual closing comment / linked PR), and retrieval
-  recall@k.
+  **recall@k + precision@k** (relevant set = corpus issues sharing ≥1 label with the query).
 - **Chunking sweep** — structural vs flat × chunk size {300, 500, 700} × overlap {10%,
-  15%}, reporting recall@k + context relevance to justify the chunking choice.
+  15%}, reporting recall@k + precision@k + context relevance to justify the chunking choice.
+- **Retrieval-strategy sweep** — `base` vs `rewrite` vs `rerank` vs `rewrite+rerank`,
+  reporting recall@10 + precision@10 + judge scores to quantify the rewriter/reranker uplift.
 - **System metrics** — p95 latency and estimated cost per triage.
 
 ## Results
@@ -263,9 +283,9 @@ To be filled in after the first real run over the selected repos (see "How to ru
 4). The table below is produced by `run_evals.py`:
 
 ```
-system   label_top1  label_top3  action_rouge_l  action_entity_match  ...  latency_p95  cost
-vanilla  ...         ...         ...             ...                 ...  ...          ...
-multi    ...         ...         ...             ...                 ...  ...          ...
+system   label_top1  label_top3  action_rouge_l  ...  recall@k  precision@k  latency_p95  cost
+vanilla  ...         ...         ...             ...  ...       ...          ...          ...
+multi    ...         ...         ...             ...  ...       ...          ...          ...
 ```
 
 ## Problems faced & solutions
@@ -287,6 +307,7 @@ multi    ...         ...         ...             ...                 ...  ...   
 | Prompts were scattered across agent/tool modules | Consolidated every prompt into `prompts/` (classify, historical, process, orchestrator, vanilla, judge) |
 | `langfuse` install dragged in opentelemetry packages that conflicted with chromadb's pinned versions | Pinned the whole `opentelemetry` stack to one version (1.45.0) so both libraries import cleanly |
 | A user query could try to override the system prompt or be unrelated to triage | Added an input guard (`guardrails/input_guard.py`): rule-based injection detection + an LLM relevance gate (binary verdict); rejected queries short-circuit the graph before any agent work |
+| Raw issue text embeds poorly as a retrieval query and cosine order ignores semantics | Added a query rewriter (`rag/rewrite.py`) and an LLM reranker (`rag/rerank.py`) over a candidate pool; measured via `--sweep-retrieval` |
 
 ## Learnings
 
