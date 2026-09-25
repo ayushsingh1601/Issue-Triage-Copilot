@@ -20,6 +20,8 @@ from triage.orchestration.graph import build_graph
 from triage.orchestration.state import TriageState
 from triage.persist import load_records
 from triage.rag.parse import IssueRecord
+from triage.rag.rerank import Reranker
+from triage.rag.rewrite import QueryRewriter
 from triage.tracing import Tracer
 
 PROCESSED = Path("triage/data/processed")
@@ -78,6 +80,12 @@ def main() -> None:
     parser.add_argument(
         "--no-guard", action="store_true", help="disable the input guard (injection/relevance)"
     )
+    parser.add_argument(
+        "--no-rewrite", action="store_true", help="disable the query rewriter"
+    )
+    parser.add_argument(
+        "--no-rerank", action="store_true", help="disable the LLM reranker"
+    )
     args = parser.parse_args()
 
     actual: dict[str, Any] | None = None
@@ -93,7 +101,12 @@ def main() -> None:
         query = args.text
         issue_id = args.issue_id
 
-    tools = TriageTools(indexes_dir=args.indexes, processed_dir=args.processed)
+    tools = TriageTools(
+        indexes_dir=args.indexes,
+        processed_dir=args.processed,
+        rewriter=None if args.no_rewrite else QueryRewriter(),
+        reranker=None if args.no_rerank else Reranker(),
+    )
     session = Session(issue_id=issue_id)
     tracer = Tracer(path=args.trace) if args.trace else None
     input_guard = None if args.no_guard else InputGuard()

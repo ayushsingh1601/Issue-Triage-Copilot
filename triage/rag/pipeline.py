@@ -6,16 +6,25 @@ from pathlib import Path
 from triage.agents.vanilla import VanillaAgent
 from triage.guardrails.schema import TriageDecision
 from triage.rag.embed import Embedder
+from triage.rag.rerank import Reranker
 from triage.rag.retriever import Retriever
+from triage.rag.rewrite import QueryRewriter
 from triage.rag.store import ChromaStore
 
 
-def build_retriever(indexes_dir: Path, embedder: Embedder | None = None) -> Retriever:
+def build_retriever(
+    indexes_dir: Path,
+    embedder: Embedder | None = None,
+    rewriter: QueryRewriter | None = None,
+    reranker: Reranker | None = None,
+) -> Retriever:
     embedder = embedder or Embedder()
     return Retriever(
         embedder=embedder,
         issue_store=ChromaStore(indexes_dir / "issues", "issues"),
         doc_store=ChromaStore(indexes_dir / "docs", "docs"),
+        rewriter=rewriter,
+        reranker=reranker,
     )
 
 

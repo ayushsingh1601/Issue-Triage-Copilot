@@ -15,7 +15,7 @@ from triage.agents.process import ProcessAgent
 from triage.agents.process import default_model as process_default_model
 from triage.agents.vanilla import VanillaAgent, default_respond_fn
 from triage.evals.judge import Judge
-from triage.evals.metrics import action_overlap, label_accuracy, recall_at_k
+from triage.evals.metrics import action_overlap, label_accuracy, precision_at_k, recall_at_k
 from triage.guardrails.schema import TriageDecision
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
@@ -29,7 +29,9 @@ from triage.rag.embed import Embedder
 from triage.rag.index_build import build_doc_index, build_issue_index
 from triage.rag.parse import IssueRecord, ProcessDoc
 from triage.rag.pipeline import VanillaPipeline
+from triage.rag.rerank import Reranker
 from triage.rag.retriever import Retriever
+from triage.rag.rewrite import QueryRewriter
 from triage.rag.store import Match
 
 COST_PER_CALL = 0.0002
@@ -44,6 +46,9 @@ class Components:
     process_model: Any | None = None
     judge_respond: Any | None = None
     judge_responds: dict[str, Any] | None = None
+    rewriter: QueryRewriter | None = None
+    reranker: Reranker | None = None
+    use_retrieval_enhancements: bool = True
 
 
 @dataclass
@@ -57,6 +62,7 @@ class SystemResults:
     context_relevance: float = 0.0
     groundedness: float = 0.0
     recall_at_k: float = 0.0
+    precision_at_k: float = 0.0
     latency_p95: float = 0.0
     cost: float = 0.0
 
@@ -92,7 +98,18 @@ class EvaluationRunner:
         components: Components | None = None,
     ) -> None:
         comp = components or Components()
-        self._tools = comp.tools or TriageTools(indexes_dir, processed_dir)
+        if comp.tools is None:
+            if comp.use_retrieval_enhancements:
+                self._tools = TriageTools(
+                    indexes_dir,
+                    processed_dir,
+                    rewriter=comp.rewriter or QueryRewriter(),
+                    reranker=comp.reranker or Reranker(),
+                )
+            else:
+                self._tools = TriageTools(indexes_dir, processed_dir)
+        else:
+            self._tools = comp.tools
         self._corpus = load_records(processed_dir / "issues_corpus.json", IssueRecord)
         self._held_out = load_records(processed_dir / "issues_held_out.json", IssueRecord)
         self._retriever = self._tools.retriever()
@@ -123,6 +140,7 @@ class EvaluationRunner:
             "action_rouge_l": [],
             "action_entity_match": [],
             "recall": [],
+            "precision": [],
         }
         for metric in METRICS:
             metric_scores[metric] = []
@@ -151,9 +169,9 @@ class EvaluationRunner:
                 query, k_issues=10, k_docs=3
             )
             relevant = self._relevant_ids(record)
-            metric_scores["recall"].append(
-                recall_at_k([match.id for match in issue_matches], relevant)
-            )
+            retrieved_ids = [match.id for match in issue_matches]
+            metric_scores["recall"].append(recall_at_k(retrieved_ids, relevant))
+            metric_scores["precision"].append(precision_at_k(retrieved_ids, relevant))
             judged = self._judge.evaluate(
                 query,
                 decision.model_dump_json(),
@@ -171,6 +189,7 @@ class EvaluationRunner:
         results.context_relevance = _mean(metric_scores["context_relevance"])
         results.groundedness = _mean(metric_scores["groundedness"])
         results.recall_at_k = _mean(metric_scores["recall"])
+        results.precision_at_k = _mean(metric_scores["precision"])
         results.latency_p95 = _p95(latencies)
         results.cost = self._cost_per_triage(system, len(records))
         return results

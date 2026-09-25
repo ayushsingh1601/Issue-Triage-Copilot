@@ -13,7 +13,9 @@ from triage.persist import load_records
 from triage.prompts.classify import build_classify_prompt
 from triage.rag.embed import Embedder
 from triage.rag.parse import IssueRecord
-from triage.rag.store import ChromaStore
+from triage.rag.rerank import Reranker
+from triage.rag.rewrite import QueryRewriter
+from triage.rag.store import ChromaStore, Match
 
 DEFAULT_ISSUE_TYPES = ["bug", "enhancement", "documentation", "question", "maintenance"]
 
@@ -35,6 +37,8 @@ class TriageTools:
         processed_dir: Path | str,
         embed_fn: Callable[[list[str]], list[list[float]]] | None = None,
         llm_respond: RespondFn | None = None,
+        rewriter: QueryRewriter | None = None,
+        reranker: Reranker | None = None,
     ) -> None:
         indexes_dir = Path(indexes_dir)
         self._issue_store = ChromaStore(indexes_dir / "issues", "issues")
@@ -45,6 +49,8 @@ class TriageTools:
         }
         self._embedder = Embedder(embed_fn=embed_fn)
         self._llm_respond = llm_respond or default_llm_respond()
+        self._rewriter = rewriter
+        self._reranker = reranker
 
     def classify_issue(self, issue: str) -> dict[str, Any]:
         types = self._label_types()
@@ -61,35 +67,39 @@ class TriageTools:
         limit: int = 5,
     ) -> list[dict[str, Any]]:
         where = {"repo": repo} if repo else None
+        search_text = self._rewriter.rewrite(query) if self._rewriter else query
         matches = self._issue_store.query(
-            self._embedder.embed(query), k=max(limit * 3, 10), where=where
+            self._embedder.embed(search_text), k=max(limit * 3, 10), where=where
         )
-        results: list[dict[str, Any]] = []
-        for match in matches:
-            record = self._records.get(match.id)
-            if record is None:
-                continue
-            if issue_type and issue_type not in record.labels:
-                continue
-            closing = [
-                c.body
-                for c in record.comments
-                if c.author_association in ("OWNER", "MEMBER", "COLLABORATOR")
-            ]
-            results.append(
-                {
-                    "issue_id": match.id,
-                    "title": record.title,
-                    "labels": record.labels,
-                    "linked_prs": record.linked_prs,
-                    "closed_at": record.closed_at,
-                    "closing_comments": closing[-2:],
-                    "distance": match.distance,
-                }
-            )
-            if len(results) >= limit:
-                break
-        return results
+        candidates = [
+            match
+            for match in matches
+            if self._records.get(match.id) is not None
+            and (issue_type is None or issue_type in self._records[match.id].labels)
+        ]
+        ranked = (
+            self._reranker.rerank(query, candidates, limit)
+            if self._reranker
+            else candidates[:limit]
+        )
+        return [self._issue_ref(match) for match in ranked]
+
+    def _issue_ref(self, match: Match) -> dict[str, Any]:
+        record = self._records[match.id]
+        closing = [
+            c.body
+            for c in record.comments
+            if c.author_association in ("OWNER", "MEMBER", "COLLABORATOR")
+        ]
+        return {
+            "issue_id": match.id,
+            "title": record.title,
+            "labels": record.labels,
+            "linked_prs": record.linked_prs,
+            "closed_at": record.closed_at,
+            "closing_comments": closing[-2:],
+            "distance": match.distance,
+        }
 
     def get_issue_details(self, issue_id: str) -> dict[str, Any] | None:
         record = self._records.get(issue_id)
@@ -117,7 +127,9 @@ class TriageTools:
 
     def get_runbook_steps(self, issue_type: str, query: str = "") -> list[dict[str, Any]]:
         text = f"{issue_type}: {query}" if query else issue_type
-        matches = self._doc_store.query(self._embedder.embed(text), k=4)
+        search_text = self._rewriter.rewrite(text) if self._rewriter else text
+        matches = self._doc_store.query(self._embedder.embed(search_text), k=10)
+        ranked = self._reranker.rerank(text, matches, 4) if self._reranker else matches[:4]
         return [
             {
                 "step": match.text,
@@ -125,7 +137,7 @@ class TriageTools:
                 "path": match.metadata.get("path", ""),
                 "heading": match.metadata.get("heading_path", ""),
             }
-            for match in matches
+            for match in ranked
         ]
 
     def get_resolution_patterns(self, issue_type: str, repo: str | None = None) -> dict[str, Any]:
@@ -173,4 +185,6 @@ class TriageTools:
             embedder=self._embedder,
             issue_store=self._issue_store,
             doc_store=self._doc_store,
+            rewriter=self._rewriter,
+            reranker=self._reranker,
         )
