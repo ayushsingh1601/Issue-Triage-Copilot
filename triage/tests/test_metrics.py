@@ -1,5 +1,11 @@
 import pytest
-from triage.evals.metrics import action_overlap, label_accuracy, recall_at_k, rouge_l_f1
+from triage.evals.metrics import (
+    action_overlap,
+    label_accuracy,
+    precision_at_k,
+    recall_at_k,
+    rouge_l_f1,
+)
 
 
 def test_label_accuracy_top1_and_top3():
@@ -41,3 +47,10 @@ def test_recall_at_k():
     assert recall_at_k(["a", "b"], {"c"}) == 0.0
     assert recall_at_k(["a", "b", "c"], {"a", "d"}) == pytest.approx(0.5)
     assert recall_at_k(["a"], set()) == 0.0
+
+
+def test_precision_at_k():
+    assert precision_at_k(["a", "b", "c"], {"a", "c"}) == pytest.approx(2 / 3)
+    assert precision_at_k(["a", "b", "c"], {"d"}) == 0.0
+    assert precision_at_k(["a"], {"a"}) == 1.0
+    assert precision_at_k([], {"a"}) == 0.0

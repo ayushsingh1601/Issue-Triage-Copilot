@@ -46,6 +46,13 @@ def recall_at_k(retrieved_ids: list[str], relevant_ids: set[str]) -> float:
     return hits / len(relevant_ids)
 
 
+def precision_at_k(retrieved_ids: list[str], relevant_ids: set[str]) -> float:
+    if not retrieved_ids:
+        return 0.0
+    hits = sum(1 for issue_id in retrieved_ids if issue_id in relevant_ids)
+    return hits / len(retrieved_ids)
+
+
 def _lcs_length(a: list[str], b: list[str]) -> int:
     m, n = len(a), len(b)
     dp = [[0] * (n + 1) for _ in range(m + 1)]
