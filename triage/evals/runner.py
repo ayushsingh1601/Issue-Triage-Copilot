@@ -134,6 +134,17 @@ class EvaluationRunner:
 
     def evaluate_system(self, system: str, limit: int | None = None) -> SystemResults:
         records = self._held_out[:limit] if limit else self._held_out
+        if system == "vanilla":
+            runs = [
+                self._time_vanilla(
+                    f"{record.title}\n\n{record.body}", f"{record.repo}#{record.number}"
+                )
+                for record in records
+            ]
+        else:
+            runs = asyncio.run(self._run_multi_batch(records))
+        decisions = [decision for decision, _ in runs]
+        latencies = [latency for _, latency in runs]
         metric_scores: dict[str, list[float]] = {
             "label_top1": [],
             "label_top3": [],
@@ -144,17 +155,9 @@ class EvaluationRunner:
         }
         for metric in METRICS:
             metric_scores[metric] = []
-        latencies: list[float] = []
 
-        for record in records:
+        for record, decision in zip(records, decisions, strict=True):
             query = f"{record.title}\n\n{record.body}"
-            issue_id = f"{record.repo}#{record.number}"
-            start = time.perf_counter()
-            if system == "vanilla":
-                decision = self._run_vanilla(query, issue_id)
-            else:
-                decision = asyncio.run(self._run_multi(query, issue_id))
-            latencies.append(time.perf_counter() - start)
 
             label = label_accuracy(decision.suggested_labels, record.labels)
             metric_scores["label_top1"].append(label["top1"])
@@ -193,6 +196,23 @@ class EvaluationRunner:
         results.latency_p95 = _p95(latencies)
         results.cost = self._cost_per_triage(system, len(records))
         return results
+
+    def _time_vanilla(self, query: str, issue_id: str) -> tuple[TriageDecision, float]:
+        start = time.perf_counter()
+        decision = self._run_vanilla(query, issue_id)
+        return decision, time.perf_counter() - start
+
+    async def _run_multi_batch(
+        self, records: list[IssueRecord]
+    ) -> list[tuple[TriageDecision, float]]:
+        runs: list[tuple[TriageDecision, float]] = []
+        for record in records:
+            query = f"{record.title}\n\n{record.body}"
+            issue_id = f"{record.repo}#{record.number}"
+            start = time.perf_counter()
+            decision = await self._run_multi(query, issue_id)
+            runs.append((decision, time.perf_counter() - start))
+        return runs
 
     def _run_vanilla(self, query: str, issue_id: str) -> TriageDecision:
         return VanillaPipeline(retriever=self._retriever, agent=self._vanilla_agent).run(
