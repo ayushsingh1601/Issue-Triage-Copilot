@@ -48,6 +48,20 @@ Five read-only tools over the local corpus, with strict per-agent access:
 No write tools exist. `guardrails/citation_verify.py` drops any cited issue ID or doc
 section that does not exist before the decision reaches the final output.
 
+### Input guard
+
+Every query passes an input guardrail before any agent work:
+
+- **Prompt-injection detection** — a deterministic rule set (`guardrails/input_guard.py`)
+  catches instruction-override attempts ("ignore previous instructions", "reveal your
+  system prompt", role-switching, jailbreak phrasing).
+- **Relevance gate** — an LLM (binary `yes`/`no` verdict, injectable) rejects queries that
+  are not a triageable issue (unrelated text, gibberish, short input).
+
+A rejected query short-circuits the graph to a `reject` node, so no LLM/tool calls are made
+for it. Enable with `build_graph(..., input_guard=InputGuard())`; the demo enables it by
+default (`--no-guard` to disable).
+
 ### Vanilla RAG baseline
 
 `agents/vanilla.py` + `rag/pipeline.py` retrieve from both indexes with one prompt (no
@@ -71,6 +85,9 @@ GitHub API ──fetch──▶ IssueRecord / ProcessDoc
    new / held-out issue
         │
         ▼  orchestration/graph.py (LangGraph)
+   guard ──prompt-injection rules + relevance gate──▶ reject (END) | continue
+        │
+        ▼
    plan ──classify_issue──▶ {type, confidence}
         │
         ├──▶ historical agent (ReAct over MCP): search_past_issues → get_issue_details
@@ -113,8 +130,8 @@ triage/
   orchestration/ state, graph, nodes, edges, human_in_loop
   mcp_tools/  server, tools, langchain (AgentToolbox + tool groups)
   memory/     store (evidence cache), session
-  guardrails/ citation_verify, schema, confidence
-  prompts/    orchestrator, historical, process, vanilla, judge, classify
+  guardrails/ citation_verify, schema, confidence, input_guard
+  prompts/    orchestrator, historical, process, vanilla, judge, classify, guard
   evals/      dataset (held-out split), judge, metrics, runner
   scripts/    fetch, build_corpus, run_demo, run_evals
   tests/      per-module pytest files
@@ -163,8 +180,9 @@ python triage/scripts/run_demo.py --held-out-index 0
 python triage/scripts/run_demo.py --text "Title\n\nbody of a brand-new issue"
 ```
 
-Prints the final decision JSON, the confidence gate result, and (for held-out issues) the
-actual resolution for comparison.
+The input guard runs first (prompt-injection rules + relevance gate; `--no-guard` to
+disable). Prints the guard result, final decision JSON, the confidence gate result, and (for
+held-out issues) the actual resolution for comparison.
 
 ### 4. Run the evaluation
 
@@ -268,6 +286,7 @@ multi    ...         ...         ...             ...                 ...  ...   
 | No visibility into which stage of the agent flow was slow | Added a local `Tracer` (`tracing.py`) wired into the graph nodes and ReAct loop, recording per-node / per-LLM / per-tool latencies with an avg/p95 summary |
 | Prompts were scattered across agent/tool modules | Consolidated every prompt into `prompts/` (classify, historical, process, orchestrator, vanilla, judge) |
 | `langfuse` install dragged in opentelemetry packages that conflicted with chromadb's pinned versions | Pinned the whole `opentelemetry` stack to one version (1.45.0) so both libraries import cleanly |
+| A user query could try to override the system prompt or be unrelated to triage | Added an input guard (`guardrails/input_guard.py`): rule-based injection detection + an LLM relevance gate (binary verdict); rejected queries short-circuit the graph before any agent work |
 
 ## Learnings
 

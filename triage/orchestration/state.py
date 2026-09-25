@@ -5,6 +5,7 @@ import operator
 from typing import Annotated, Any
 
 from pydantic import BaseModel
+from triage.guardrails.input_guard import GuardResult
 from triage.guardrails.schema import TriageDecision
 
 
@@ -17,4 +18,6 @@ class TriageState(BaseModel):
     decision: TriageDecision | None = None
     confidence: float = 0.0
     needs_human: bool = False
+    guard_result: GuardResult | None = None
+    rejected: bool = False
     citations: Annotated[list[str], operator.add] = []

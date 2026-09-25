@@ -11,6 +11,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from triage.guardrails.input_guard import InputGuard
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
 from triage.memory.session import Session
@@ -51,9 +52,10 @@ async def run_triage(
     query: str,
     issue_id: str,
     tracer: Tracer | None = None,
+    input_guard: InputGuard | None = None,
 ) -> dict[str, Any]:
     async with AgentToolbox(tools) as box:
-        graph = build_graph(toolbox=box, tracer=tracer).compile()
+        graph = build_graph(toolbox=box, tracer=tracer, input_guard=input_guard).compile()
         return await graph.ainvoke(
             TriageState(issue=query, issue_id=issue_id),
             config=graph_config(),
@@ -73,6 +75,9 @@ def main() -> None:
     parser.add_argument(
         "--trace", type=Path, default=None, help="save a latency trace to this path"
     )
+    parser.add_argument(
+        "--no-guard", action="store_true", help="disable the input guard (injection/relevance)"
+    )
     args = parser.parse_args()
 
     actual: dict[str, Any] | None = None
@@ -91,8 +96,9 @@ def main() -> None:
     tools = TriageTools(indexes_dir=args.indexes, processed_dir=args.processed)
     session = Session(issue_id=issue_id)
     tracer = Tracer(path=args.trace) if args.trace else None
+    input_guard = None if args.no_guard else InputGuard()
     session.record("start", query_length=len(query))
-    result = asyncio.run(run_triage(tools, query, issue_id, tracer))
+    result = asyncio.run(run_triage(tools, query, issue_id, tracer, input_guard))
     session.record("end")
     session.decision = result["decision"].model_dump(mode="json") if result["decision"] else None
     if tracer:
@@ -104,8 +110,11 @@ def main() -> None:
 
     print("=" * 60)
     print(f"ISSUE {issue_id}  ({'held-out' if actual else 'fresh'})")
+    print(f"guard: allowed={result['guard_result'].allowed} ({result['guard_result'].reason})")
     print(f"classification: {result['classification']}")
     print(f"needs_human: {result['needs_human']}")
+    if result["rejected"]:
+        print("QUERY REJECTED — no decision produced.")
     print()
     print("FINAL DECISION:")
     print(result["decision"].model_dump_json(indent=2) if result["decision"] else "none")

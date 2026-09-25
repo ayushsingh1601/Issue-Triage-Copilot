@@ -7,19 +7,22 @@ from collections.abc import Awaitable, Callable
 from langgraph.graph import END, START, StateGraph
 from triage.agents.historical import HistoricalAgent
 from triage.agents.process import ProcessAgent
+from triage.guardrails.input_guard import InputGuard
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.memory.store import EvidenceStore
-from triage.orchestration.edges import route_after_decide
+from triage.orchestration.edges import route_after_decide, route_after_guard
 from triage.orchestration.nodes import (
     decide_node,
     historical_node,
     human_in_loop_node,
     make_decide_node,
+    make_guard_node,
     make_historical_node,
     make_plan_node,
     make_process_node,
     plan_node,
     process_node,
+    reject_node,
 )
 from triage.orchestration.state import TriageState
 from triage.tracing import Tracer
@@ -32,8 +35,11 @@ def build_graph(
     orchestrator_respond: Callable[[str], str] | None = None,
     evidence_store: EvidenceStore | None = None,
     tracer: Tracer | None = None,
+    input_guard: InputGuard | None = None,
 ) -> StateGraph:
     graph = StateGraph(TriageState)
+    graph.add_node("guard", make_guard_node(input_guard))
+    graph.add_node("reject", reject_node)
     if toolbox:
         graph.add_node("plan", _timed("node:plan", tracer, make_plan_node(toolbox, tracer)))
         graph.add_node(
@@ -66,7 +72,13 @@ def build_graph(
         graph.add_node("process", process_node)
         graph.add_node("decide", decide_node)
     graph.add_node("human_in_loop", human_in_loop_node)
-    graph.add_edge(START, "plan")
+    graph.add_edge(START, "guard")
+    graph.add_conditional_edges(
+        "guard",
+        route_after_guard,
+        {"plan": "plan", "reject": "reject"},
+    )
+    graph.add_edge("reject", END)
     graph.add_edge("plan", "historical")
     graph.add_edge("plan", "process")
     graph.add_edge("historical", "decide")

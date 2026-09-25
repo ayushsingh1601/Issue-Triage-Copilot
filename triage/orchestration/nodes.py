@@ -9,6 +9,7 @@ from triage.agents.historical import HistoricalAgent
 from triage.agents.process import ProcessAgent
 from triage.guardrails.citation_verify import verify_decision
 from triage.guardrails.confidence import needs_human_review
+from triage.guardrails.input_guard import GuardResult, InputGuard
 from triage.guardrails.schema import TriageDecision
 from triage.jsonutil import content_text, extract_json, parse_json_documents
 from triage.mcp_tools.langchain import AgentToolbox
@@ -30,6 +31,21 @@ def default_orchestrator_respond() -> Callable[[str], str]:
 
 def plan_node(state: TriageState) -> dict:
     return {"classification": {"type": "", "confidence": 0.0}}
+
+
+def make_guard_node(
+    input_guard: InputGuard | None = None,
+) -> Callable[[TriageState], dict]:
+    def node(state: TriageState) -> dict:
+        if input_guard is None:
+            return {"guard_result": GuardResult(allowed=True, reason="no guard configured")}
+        return {"guard_result": input_guard.guard(state.issue)}
+
+    return node
+
+
+def reject_node(state: TriageState) -> dict:
+    return {"rejected": True, "needs_human": False, "decision": None, "confidence": 0.0}
 
 
 def historical_node(state: TriageState) -> dict:
