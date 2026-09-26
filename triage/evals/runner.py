@@ -134,14 +134,20 @@ class EvaluationRunner:
         self._judge = Judge(comp.judge_respond, comp.judge_responds)
 
     def run_comparison(self, limit: int | None = None) -> dict[str, SystemResults]:
+        return asyncio.run(self.run_comparison_async(limit))
+
+    async def run_comparison_async(self, limit: int | None = None) -> dict[str, SystemResults]:
         return {
-            "vanilla": self.evaluate_system("vanilla", limit),
-            "multi": self.evaluate_system("multi", limit),
+            "vanilla": await self.evaluate_system_async("vanilla", limit),
+            "multi": await self.evaluate_system_async("multi", limit),
         }
 
     def evaluate_system(self, system: str, limit: int | None = None) -> SystemResults:
+        return asyncio.run(self.evaluate_system_async(system, limit))
+
+    async def evaluate_system_async(self, system: str, limit: int | None = None) -> SystemResults:
         records = self._held_out[:limit] if limit else self._held_out
-        runs = asyncio.run(self._run_system(system, records))
+        runs = await self._run_system(system, records)
         decisions = [decision for decision, _ in runs]
         latencies = [latency for _, latency in runs]
         metric_scores: dict[str, list[float]] = {
