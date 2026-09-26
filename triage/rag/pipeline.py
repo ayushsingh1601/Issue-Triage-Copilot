@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from langchain_core.runnables import RunnableConfig
 from triage.agents.vanilla import VanillaAgent
 from triage.guardrails.schema import TriageDecision
 from triage.rag.embed import Embedder
@@ -33,14 +34,15 @@ class VanillaPipeline:
         self._retriever = retriever
         self._agent = agent
 
-    def run(
+    async def run(
         self,
         query: str,
         issue_id: str,
         k_issues: int = 5,
         k_docs: int = 3,
+        config: RunnableConfig = None,
     ) -> TriageDecision:
         issue_matches, doc_matches = self._retriever.retrieve(
             query, k_issues=k_issues, k_docs=k_docs
         )
-        return self._agent.run(query, issue_id, issue_matches, doc_matches)
+        return await self._agent.run(query, issue_id, issue_matches, doc_matches, config=config)

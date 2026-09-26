@@ -5,6 +5,7 @@ import os
 from typing import Any
 
 from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from triage.agents.react import react_loop
 from triage.jsonutil import parse_json_documents
@@ -28,8 +29,11 @@ class HistoricalAgent:
         issue: str,
         tools: list[BaseTool],
         tracer: Tracer | None = None,
+        config: RunnableConfig = None,
     ) -> dict[str, Any]:
-        transcript = await react_loop(self._model, SYSTEM_PROMPT, issue, tools, tracer=tracer)
+        transcript = await react_loop(
+            self._model, SYSTEM_PROMPT, issue, tools, tracer=tracer, config=config
+        )
         evidence: dict[str, Any] = {
             "similar_issues": [],
             "details": [],

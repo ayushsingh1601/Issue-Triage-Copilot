@@ -1,6 +1,8 @@
 import asyncio
 import json
 
+from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
 from triage.agents.historical import HistoricalAgent
@@ -39,7 +41,7 @@ class ToolCallModel:
         ]
         self._index = 0
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, config=None):
         step = self._steps[self._index % len(self._steps)]
         self._index += 1
         return step
@@ -157,7 +159,7 @@ class HistoricalScriptedModel:
         ]
         self._index = 0
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, config=None):
         step = self._steps[self._index % len(self._steps)]
         self._index += 1
         return step
@@ -181,7 +183,7 @@ class ProcessScriptedModel:
         ]
         self._index = 0
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, config=None):
         step = self._steps[self._index % len(self._steps)]
         self._index += 1
         return step
@@ -229,3 +231,85 @@ def test_graph_records_node_latencies(tmp_path):
     assert {"node:plan", "node:historical", "node:process", "node:decide"} <= names
     assert "tool" in names
     assert "llm" in names
+
+
+class RecordingCallbackHandler(BaseCallbackHandler):
+    def __init__(self) -> None:
+        self.llm_ends: list = []
+        self.tool_ends: list = []
+        self.chain_ends: list = []
+
+    def on_llm_end(self, response, **kwargs) -> None:
+        self.llm_ends.append(response)
+
+    def on_tool_end(self, output, **kwargs) -> None:
+        self.tool_ends.append(output)
+
+    def on_chain_end(self, output, **kwargs) -> None:
+        self.chain_ends.append(output)
+
+
+def test_config_threads_callbacks_to_agent_calls(tmp_path):
+    tools = make_tools(tmp_path)
+    historical = HistoricalAgent(
+        model=FakeMessagesListChatModel(
+            responses=[
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "get_issue_details",
+                            "args": {"issue_id": "x/y#1"},
+                            "id": "call_1",
+                            "type": "tool_call",
+                        }
+                    ],
+                ),
+                AIMessage(content="similar crash in x/y#1"),
+            ]
+        )
+    )
+    process = ProcessAgent(
+        model=FakeMessagesListChatModel(
+            responses=[
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "get_runbook_steps",
+                            "args": {"issue_type": "bug", "query": "crash"},
+                            "id": "call_2",
+                            "type": "tool_call",
+                        }
+                    ],
+                ),
+                AIMessage(content="runbook step from CONTRIBUTING.md"),
+            ]
+        )
+    )
+    recorder = RecordingCallbackHandler()
+
+    async def run():
+        async with AgentToolbox(tools) as box:
+            graph = build_graph(
+                toolbox=box,
+                historical_agent=historical,
+                process_agent=process,
+                orchestrator_respond=lambda prompt: orchestrator_json(),
+            ).compile()
+            return await graph.ainvoke(
+                TriageState(
+                    issue="crash",
+                    issue_id="x/y#99",
+                    classification={"type": "bug", "confidence": 0.9},
+                ),
+                config={"callbacks": [recorder]},
+            )
+
+    result = asyncio.run(run())
+    assert recorder.llm_ends, "specialist LLM outputs were not captured"
+    assert recorder.tool_ends, "tool outputs were not captured"
+    assert any(isinstance(out, dict) and "decision" in out for out in recorder.chain_ends), (
+        "final decision not captured in the trace"
+    )
+    assert result["decision"] is not None

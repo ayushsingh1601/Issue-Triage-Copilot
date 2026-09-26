@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
 from triage.agents.historical import HistoricalAgent
 from triage.agents.historical import default_model as historical_default_model
 from triage.agents.process import ProcessAgent
@@ -71,12 +72,18 @@ class SystemResults:
 
 
 class CountingRespond:
-    def __init__(self, fn: Callable[[str], str]) -> None:
+    def __init__(self, fn: Any) -> None:
         self._fn = fn
         self.count = 0
 
     def __call__(self, prompt: str) -> str:
         self.count += 1
+        return self._fn(prompt)
+
+    async def ainvoke(self, prompt: str, config: RunnableConfig = None) -> str:
+        self.count += 1
+        if hasattr(self._fn, "ainvoke"):
+            return await self._fn.ainvoke(prompt, config=config)
         return self._fn(prompt)
 
 
@@ -85,9 +92,9 @@ class CountingModel:
         self._model = model
         self.count = 0
 
-    async def ainvoke(self, messages) -> Any:
+    async def ainvoke(self, messages, config: RunnableConfig = None) -> Any:
         self.count += 1
-        return await self._model.ainvoke(messages)
+        return await self._model.ainvoke(messages, config=config)
 
 
 class EvaluationRunner:
@@ -134,15 +141,7 @@ class EvaluationRunner:
 
     def evaluate_system(self, system: str, limit: int | None = None) -> SystemResults:
         records = self._held_out[:limit] if limit else self._held_out
-        if system == "vanilla":
-            runs = [
-                self._time_vanilla(
-                    f"{record.title}\n\n{record.body}", f"{record.repo}#{record.number}"
-                )
-                for record in records
-            ]
-        else:
-            runs = asyncio.run(self._run_multi_batch(records))
+        runs = asyncio.run(self._run_system(system, records))
         decisions = [decision for decision, _ in runs]
         latencies = [latency for _, latency in runs]
         metric_scores: dict[str, list[float]] = {
@@ -197,27 +196,24 @@ class EvaluationRunner:
         results.cost = self._cost_per_triage(system, len(records))
         return results
 
-    def _time_vanilla(self, query: str, issue_id: str) -> tuple[TriageDecision, float]:
-        start = time.perf_counter()
-        decision = self._run_vanilla(query, issue_id)
-        return decision, time.perf_counter() - start
-
-    async def _run_multi_batch(
-        self, records: list[IssueRecord]
+    async def _run_system(
+        self, system: str, records: list[IssueRecord]
     ) -> list[tuple[TriageDecision, float]]:
         runs: list[tuple[TriageDecision, float]] = []
         for record in records:
             query = f"{record.title}\n\n{record.body}"
             issue_id = f"{record.repo}#{record.number}"
             start = time.perf_counter()
-            decision = await self._run_multi(query, issue_id)
+            if system == "vanilla":
+                decision = await self._run_vanilla(query, issue_id)
+            else:
+                decision = await self._run_multi(query, issue_id)
             runs.append((decision, time.perf_counter() - start))
         return runs
 
-    def _run_vanilla(self, query: str, issue_id: str) -> TriageDecision:
-        return VanillaPipeline(retriever=self._retriever, agent=self._vanilla_agent).run(
-            query, issue_id
-        )
+    async def _run_vanilla(self, query: str, issue_id: str) -> TriageDecision:
+        pipeline = VanillaPipeline(retriever=self._retriever, agent=self._vanilla_agent)
+        return await pipeline.run(query, issue_id, config=graph_config())
 
     async def _run_multi(self, query: str, issue_id: str) -> TriageDecision:
         async with AgentToolbox(self._tools) as box:

@@ -89,7 +89,7 @@ class HistoricalScriptedModel:
             AIMessage(content="Similar crash in x/y#1."),
         ]
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, config=None):
         return self._steps.pop(0)
 
 
@@ -110,7 +110,7 @@ class ProcessScriptedModel:
             AIMessage(content="Runbook steps from CONTRIBUTING.md."),
         ]
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, config=None):
         return self._steps.pop(0)
 
 

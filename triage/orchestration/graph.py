@@ -3,7 +3,9 @@ re-enters to decide, and routes to a human-in-the-loop edge on low confidence.""
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from typing import Any
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from triage.agents.historical import HistoricalAgent
 from triage.agents.process import ProcessAgent
@@ -92,11 +94,11 @@ def build_graph(
     return graph
 
 
-def _timed(name: str, tracer: Tracer | None, fn) -> Callable[[TriageState], Awaitable[dict]]:
-    async def wrapped(state: TriageState) -> dict:
+def _timed(name: str, tracer: Tracer | None, fn) -> Callable[[TriageState, Any], Awaitable[dict]]:
+    async def wrapped(state: TriageState, config: RunnableConfig = None) -> dict:
         if tracer is None:
-            return await fn(state)
+            return await fn(state, config)
         with tracer.span(name):
-            return await fn(state)
+            return await fn(state, config)
 
     return wrapped

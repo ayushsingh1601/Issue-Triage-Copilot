@@ -273,7 +273,10 @@ export LANGFUSE_HOST=https://cloud.langfuse.com   # or your self-hosted URL
 
 When those two keys are set, `triage/observability.py` automatically attaches Langfuse's
 LangChain callback to every graph invocation (demo, notebook, and eval runner) — no code
-changes needed. When they are unset, the project runs on the local `Tracer` only.
+changes needed. Because the callback is threaded through every agent call, the Langfuse
+trace shows **each specialist LLM generation, each MCP tool call and its output, and the
+final `TriageDecision` JSON**. When they are unset, the project runs on the local `Tracer`
+only.
 
 **LangSmith** is the alternative: set `LANGSMITH_API_KEY` (+ `LANGSMITH_TRACING=true`) and
 LangChain/LangGraph calls are traced automatically. Both have free tiers; Langfuse is the

@@ -67,7 +67,7 @@ class FakeAgentModel:
     def __init__(self) -> None:
         self._calls = 0
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, config=None):
         self._calls += 1
         if self._calls == 1:
             return AIMessage(

@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 from triage.agents.vanilla import VanillaAgent
@@ -76,7 +77,7 @@ def test_vanilla_pipeline_validates_schema_and_citations(tmp_path):
     retriever = Retriever(embedder=embedder, issue_store=issue_store, doc_store=doc_store)
     agent = VanillaAgent(respond=lambda prompt: decision_json())
     pipeline = VanillaPipeline(retriever=retriever, agent=agent)
-    decision = pipeline.run("crash on empty frame", "x/y#999")
+    decision = asyncio.run(pipeline.run("crash on empty frame", "x/y#999"))
     assert isinstance(decision, TriageDecision)
     assert decision.issue_id == "x/y#999"
     assert decision.suggested_labels == ["bug"]
@@ -89,7 +90,8 @@ def test_vanilla_pipeline_handles_fenced_json(tmp_path):
     embedder, issue_store, doc_store = make_indexes(tmp_path)
     retriever = Retriever(embedder=embedder, issue_store=issue_store, doc_store=doc_store)
     agent = VanillaAgent(respond=lambda prompt: f"```json\n{decision_json()}\n```")
-    decision = VanillaPipeline(retriever=retriever, agent=agent).run("crash", "x/y#999")
+    pipeline = VanillaPipeline(retriever=retriever, agent=agent)
+    decision = asyncio.run(pipeline.run("crash", "x/y#999"))
     assert decision.issue_id == "x/y#999"
 
 

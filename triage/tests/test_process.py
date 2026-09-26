@@ -73,7 +73,7 @@ class ScriptedModel:
             AIMessage(content="Follow the bug-report runbook from CONTRIBUTING.md."),
         ]
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, config=None):
         return self._steps.pop(0)
 
 
@@ -94,7 +94,7 @@ class HistoricalScriptedModel:
             AIMessage(content="Reviewed x/y#1."),
         ]
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, config=None):
         return self._steps.pop(0)
 
 

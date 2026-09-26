@@ -133,7 +133,7 @@ class ScriptedModel:
         ]
         self._index = 0
 
-    async def ainvoke(self, messages):
+    async def ainvoke(self, messages, config=None):
         step = self._steps[self._index % len(self._steps)]
         self._index += 1
         return step

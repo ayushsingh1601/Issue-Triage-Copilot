@@ -5,6 +5,7 @@ import os
 from typing import Any
 
 from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 from triage.agents.react import react_loop
 from triage.jsonutil import parse_json_documents
@@ -29,9 +30,12 @@ class ProcessAgent:
         query: str,
         tools: list[BaseTool],
         tracer: Tracer | None = None,
+        config: RunnableConfig = None,
     ) -> dict[str, Any]:
         prompt = f"Issue type: {issue_type}\n\nIssue:\n{query}"
-        transcript = await react_loop(self._model, SYSTEM_PROMPT, prompt, tools, tracer=tracer)
+        transcript = await react_loop(
+            self._model, SYSTEM_PROMPT, prompt, tools, tracer=tracer, config=config
+        )
         evidence: dict[str, Any] = {"steps": [], "citations": [], "summary": ""}
         citations: list[str] = []
         for message in transcript:
