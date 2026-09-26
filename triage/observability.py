@@ -16,21 +16,22 @@ def langfuse_enabled() -> bool:
     return bool(os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY"))
 
 
+def _langfuse_host() -> str:
+    return os.environ.get("LANGFUSE_BASE_URL") or os.environ.get("LANGFUSE_HOST") or DEFAULT_HOST
+
+
 def langfuse_callback() -> Any | None:
     if not langfuse_enabled():
         return None
     from langfuse import Langfuse
     from langfuse.langchain import CallbackHandler
 
-    client = Langfuse(
+    Langfuse(
         public_key=os.environ.get("LANGFUSE_PUBLIC_KEY"),
         secret_key=os.environ.get("LANGFUSE_SECRET_KEY"),
-        host=os.environ.get("LANGFUSE_HOST", DEFAULT_HOST),
+        host=_langfuse_host(),
     )
-    return CallbackHandler(
-        public_key=os.environ.get("LANGFUSE_PUBLIC_KEY"),
-        trace_context=client,
-    )
+    return CallbackHandler(public_key=os.environ.get("LANGFUSE_PUBLIC_KEY"))
 
 
 def graph_config() -> dict[str, Any]:
