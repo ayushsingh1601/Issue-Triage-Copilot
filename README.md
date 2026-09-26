@@ -282,6 +282,52 @@ opencode agents can load to run and act on this project:
 
 Restart opencode after changing skills for them to be discovered.
 
+## Hosting (free) — Streamlit Community Cloud
+
+The `webapp/` folder is a Streamlit app that serves the whole copilot online for $0:
+
+- **Triage tab** — enter any public `owner/name` repo and an issue (number or pasted
+  text). The first triage of a repo fetches its resolved issues + process docs and
+  builds a per-repo RAG index on the spot; every later triage for that repo is served
+  from cache. Outputs the guard verdict, classification, the formatted decision, the
+  decision JSON, citations, a per-stage latency trace, and (for fetched issues) the
+  actual resolution side by side.
+- **Evals tab** — shows the cached vanilla-RAG vs multi-agent comparison (multi-agent
+  is the primary result), plus the retrieval-strategy sweep, latency, and cost. Results
+  are precomputed once and cached, not re-run per visitor.
+
+Run it locally:
+
+```bash
+pip install -e ".[web]"
+DATA_DIR=webapp/data streamlit run webapp/app.py
+```
+
+Deploy free to **Streamlit Community Cloud** (no credit card, permanent free tier):
+
+1. Push this repo to GitHub (it must be public or private-but-owned — you need admin
+   access). The repo root ships a `requirements.txt` (deps) and a committed seed
+   dataset (`webapp/data/seed/`) — a small sklearn corpus + embedding cache +
+   precomputed evals — so the app works instantly and offline on Streamlit's
+   ephemeral disk.
+2. Go to [share.streamlit.io](https://share.streamlit.io) → **Create app** → pick the
+   repo, branch `main`, and **`webapp/app.py`** as the main file → **Deploy**. Default
+   Python 3.12 is fine.
+3. In the app's **Settings → Secrets**, add:
+   ```toml
+   OPENAI_API_KEY = "sk-…"
+   GITHUB_TOKEN = "ghp_…"
+   ```
+   (the app syncs these into the environment). Optional: `OPENAI_MAIN_MODEL`,
+   `OPENAI_FAST_MODEL`, `EVAL_REPO`, `MAX_ISSUES`.
+
+Notes: Community Cloud is genuinely free but **ephemeral** — the app sleeps after ~12h
+of inactivity and its disk resets, so the committed seed (demo repo + evals) is what
+keeps the first visit instant; arbitrary-repo indexes are re-built on demand after each
+wake (capped by `MAX_ISSUES`, default 500, and guarded by a lock file so concurrent
+sessions share one build). A **Dockerfile** is also included for HuggingFace Spaces,
+but HF's Docker/ZeroGPU tiers now require a PRO account, so it is not the free path.
+
 ## Observability with existing frameworks
 
 The local `Tracer` needs no accounts or servers. For a hosted trace UI, **Langfuse** is

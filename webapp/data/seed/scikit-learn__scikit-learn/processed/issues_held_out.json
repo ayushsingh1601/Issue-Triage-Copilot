@@ -1,0 +1,1003 @@
+[
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34909,
+    "title": "Bug: Inconsistent use of random_state in documentation examples",
+    "body": "> [!WARNING]\n> This issue is not yet ready for a PR. If you are interested in contributing to scikit-learn, please have a look at our [contributing guidelines](https://scikit-learn.org/dev/developers/contributing.html), and in particular the sections for [new contributors](https://scikit-learn.org/dev/developers/contributing.html#new-contributors) and the [\"Needs triage\"](https://scikit-learn.org/dev/developers/contributing.html#issues-tagged-needs-triage) label.\n\n## Bug: Inconsistent use of random_state in documentation examples\n\n### Introduce yourself\nI'm a user of scikit-learn who has been working with machine learning libraries for a while. I've noticed inconsistencies in how `random_state` is used in documentation examples.\n\n### Describe the bug and give evidence about its user-facing impact\nInconsistent usage of `random_state` parameter across documentation examples. Some examples use `random_state=42`, others use `random_state=0`, and some don't use it at all. This inconsistency makes it harder for users to understand the proper usage and can lead to confusion when reproducing examples.\n\n### Steps/Code to Reproduce\n1. Browse through scikit-learn documentation examples\n2. Look for usage of `random_state` parameter in various algorithms\n3. Notice inconsistent values and usage patterns\n\n### Expected Results\nAll documentation examples should use consistent `random_state` values (preferably `random_state=42`) to ensure reproducibility and consistency.\n\n### Actual Results\nExamples use various values for `random_state` inconsistently, making it difficult for users to follow best practices.\n\n### Versions\nN/A - Documentation issue\n\n### Interest in fixing the bug\nI would be interested in working on this documentation improvement if it's accepted.",
+    "state": "closed",
+    "author": "mathewOracle",
+    "created_at": "2026-09-08T17:54:43Z",
+    "closed_at": "2026-09-09T06:38:47Z",
+    "labels": [
+      "Needs Triage"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 5597228854,
+        "author": "DeaMariaLeon",
+        "author_association": "MEMBER",
+        "body": "Thanks but you opened #34909, #34910 and #34908 at the same time. \n\nPlease see https://scikit-learn.org/stable/developers/contributing.html#automated-contributions-policy\n\nClosing then.",
+        "created_at": "2026-09-09T06:38:47Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34292,
+    "title": "CI `mypy` reports type errors in unrelated PRs",
+    "body": "First noticed in ba12cf9a0290b9852b4849915f431b61300b4128 and its revert ae8f42a2b15ca8a7d44a8fc3c05149147339a0fe, where the CI failed because `mypy` reported the following errors despite the changes being unrelated:\n\n<details>\n\n<summary>Error message</summary>\n\n```bash\n### Running mypy ###\n\nsklearn/neighbors/tests/test_graph.py:84: error: List item 0 has incompatible type \"type[KNeighborsTransformer]\"; expected \"type[NeighborsBase]\"  [list-item]\nsklearn/svm/tests/test_svm.py:631: error: List item 1 has incompatible type \"tuple[type[NuSVC], str]\"; expected \"tuple[type[BaseSVC], str]\"  [list-item]\nsklearn/svm/tests/test_svm.py:650: error: List item 1 has incompatible type \"tuple[type[NuSVC], dict[str, list[float]]]\"; expected \"tuple[type[BaseSVC], dict[str, list[float]]]\"  [list-item]\nsklearn/svm/tests/test_svm.py:1252: error: List item 0 has incompatible type \"type[SVC]\"; expected \"type[BaseSVC]\"  [list-item]\nsklearn/svm/tests/test_svm.py:1267: error: List item 0 has incompatible type \"type[SVC]\"; expected \"type[BaseSVC]\"  [list-item]\nsklearn/svm/tests/test_svm.py:1520: error: List item 1 has incompatible type \"tuple[type[NuSVC], str]\"; expected \"tuple[type[BaseSVC], str]\"  [list-item]\nsklearn/svm/tests/test_svm.py:1529: error: List item 0 has incompatible type \"type[SVC]\"; expected \"type[BaseSVC]\"  [list-item]\nsklearn/neighbors/tests/test_neighbors.py:335: error: List item 0 has incompatible type \"type[KNeighborsClassifier]\"; expected \"type[NeighborsBase]\"  [list-item]\nsklearn/neighbors/tests/test_neighbors.py:336: error: List item 1 has incompatible type \"type[KNeighborsRegressor]\"; expected \"type[NeighborsBase]\"  [list-item]\nsklearn/linear_model/tests/test_least_angle.py:209: error: List item 0 has incompatible type \"type[Lars]\"; expected \"type[Lars]\"  [list-item]\nsklearn/linear_model/tests/test_least_angle.py:209: error: List item 1 has incompatible type \"type[LarsCV]\"; expected \"type[Lars]\"  [list-item]\nsklearn/ensemble/tests/test_stacking.py:566: error: List item 1 has incompatible type \"tuple[type[StackingRegressor], type[DummyRegressor], str, LinearRegression, Any, Any]\"; expected \"tuple[ABCMeta, type[BaseEstimator], str, BaseEstimator, Any, Any]\"  [list-item]\nsklearn/ensemble/tests/test_gradient_boosting.py:1351: error: List item 2 has incompatible type \"tuple[type[GradientBoostingRegressor], Any, type[DummyRegressor]]\"; expected \"tuple[ABCMeta, Any, type[BaseEstimator]]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_warm_start.py:32: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_warm_start.py:54: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_warm_start.py:80: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_warm_start.py:108: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_warm_start.py:137: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_warm_start.py:157: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_warm_start.py:183: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py:66: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py:953: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], HalfSquaredError, Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], BaseLoss, Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py:970: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any, Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any, Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py:1461: error: List item 1 has incompatible type \"tuple[type[HistGradientBoostingRegressor], Any]\"; expected \"tuple[type[BaseHistGradientBoosting], Any]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py:1554: error: List item 0 has incompatible type \"type[HistGradientBoostingClassifier]\"; expected \"type[BaseHistGradientBoosting]\"  [list-item]\nsklearn/ensemble/_hist_gradient_boosting/tests/test_gradient_boosting.py:1609: error: List item 0 has incompatible type \"type[HistGradientBoostingClassifier]\"; expected \"type[BaseHistGradientBoosting]\"  [list-item]\nsklearn/model_selection/tests/test_split.py:430: error: List item 0 has incompatible type \"type[StratifiedKFold]\"; expected \"type[_BaseKFold]\"  [list-item]\nsklearn/model_selection/tests/test_split.py:457: error: List item 0 has incompatible type \"type[StratifiedKFold]\"; expected \"type[_BaseKFold]\"  [list-item]\nsklearn/model_selection/tests/test_split.py:499: error: List item 0 has incompatible type \"type[StratifiedKFold]\"; expected \"type[_BaseKFold]\"  [list-item]\nsklearn/model_selection/tests/test_split.py:542: error: List item 0 has incompatible type \"type[KFold]\"; expected \"type[_BaseKFold]\"  [list-item]\nsklearn/model_selection/tests/test_split.py:542: error: List item 1 has incompatible type \"type[StratifiedKFold]\"; expected \"type[_BaseKFold]\"  [list-item]\nsklearn/model_selection/tests/test_split.py:1660: error: List item 0 has incompatible type \"type[GroupKFold]\"; expected \"type[_BaseKFold]\"  [list-item]\nFound 32 errors in 9 files (checked 596 source files)\nProblems detected by mypy, please fix them\n```\n</details>\n\nThe same errors are appearing in newly created PRs as well, e.g. #34289, #34290, #34291.",
+    "state": "closed",
+    "author": "virchan",
+    "created_at": "2026-06-15T01:02:51Z",
+    "closed_at": "2026-06-16T05:18:57Z",
+    "labels": [
+      "Build / CI"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4706284977,
+        "author": "ogrisel",
+        "author_association": "MEMBER",
+        "body": "As anyone any idea on what change caused this?",
+        "created_at": "2026-06-15T09:06:48Z"
+      },
+      {
+        "id": 4706383526,
+        "author": "MarcoGorelli",
+        "author_association": "CONTRIBUTOR",
+        "body": "> As anyone any idea on what change caused this?\n\nthe new pytest release from 2 days ago, probably",
+        "created_at": "2026-06-15T09:18:33Z"
+      },
+      {
+        "id": 4706508927,
+        "author": "ogrisel",
+        "author_association": "MEMBER",
+        "body": "Indeed, we do not lock the pytest version in the linting CI workflow. This is probably an oversight:\n\nhttps://github.com/scikit-learn/scikit-learn/blob/main/.github/workflows/lint.yml#L37\n\nI think we should.",
+        "created_at": "2026-06-15T09:33:36Z"
+      },
+      {
+        "id": 4708099653,
+        "author": "AnneBeyer",
+        "author_association": "CONTRIBUTOR",
+        "body": "Should I open a PR to pin `pytest` to the min version similar to `ruff` and `mypy` in the line mentioned above?\nIf I understand correctly, @MarcoGorelli's fix would still become relevant once `9.1.0` becomes the min version (currently it is `7.1.2` in `_min_dependencies.py`).",
+        "created_at": "2026-06-15T12:51:14Z"
+      },
+      {
+        "id": 4709444789,
+        "author": "ogrisel",
+        "author_association": "MEMBER",
+        "body": "EDIT: comment moved to the PR.",
+        "created_at": "2026-06-15T15:18:07Z"
+      },
+      {
+        "id": 4717262306,
+        "author": "betatim",
+        "author_association": "MEMBER",
+        "body": "For my education, why would changing the pytest version make mypy unhappy? Is it because the way mypy detects what files were changed??\n\nI'm happy with the fix but confused why this happened/what the interaction is :-/",
+        "created_at": "2026-06-16T09:58:46Z"
+      },
+      {
+        "id": 4717483804,
+        "author": "betatim",
+        "author_association": "MEMBER",
+        "body": "https://github.com/scikit-learn/scikit-learn/pull/34300#discussion_r3412452966 This is a good discussion of the fix, but it still has me wondering why changing the pytest version made this \"type annotation bug\" appear.",
+        "created_at": "2026-06-16T10:16:24Z"
+      },
+      {
+        "id": 4718211222,
+        "author": "MarcoGorelli",
+        "author_association": "CONTRIBUTOR",
+        "body": "pytest exports its types, so some typing improvements on their side surfaced some lists of classes with incompatible constructors (which mypy doesn't allow)",
+        "created_at": "2026-06-16T11:24:29Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34180,
+    "title": "`ExtraTree*.fit` docstring is the `DecisionTree*.fit` docstring",
+    "body": "> [!WARNING]\n> This issue is not yet ready for a PR. If you are interested in contributing to scikit-learn, please have a look at our [contributing guidelines](https://scikit-learn.org/dev/developers/contributing.html), and in particular the sections for [new contributors](https://scikit-learn.org/dev/developers/contributing.html#new-contributors) and the [\"Needs triage\"](https://scikit-learn.org/dev/developers/contributing.html#issues-tagged-needs-triage) label.\n\n### Describe the issue linked to the documentation\n\nThe docstring for `ExtraTree*.fit` is the same than the one of `DecisionTree*` so it's inaccurate:\n\nhttps://scikit-learn.org/stable/modules/generated/sklearn.tree.ExtraTreeRegressor.html#sklearn.tree.ExtraTreeRegressor.fit\n\n> Build a decision tree regressor from the training set (X, y).\n\n> Return:\n>     self : DecisionTreeRegressor\n>        Fitted estimator.\n\n### Suggest a potential alternative/fix\n\nRemoving `ExtraTree*` classes would fix this (this is one option considered in https://github.com/scikit-learn/scikit-learn/issues/33158)\n\nOtherwise we need to add a fit method to those classes.",
+    "state": "closed",
+    "author": "cakedev0",
+    "created_at": "2026-06-02T10:46:39Z",
+    "closed_at": "2026-08-10T11:44:10Z",
+    "labels": [
+      "Documentation",
+      "Needs Triage"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4627337637,
+        "author": "borrowed-ptr",
+        "author_association": "NONE",
+        "body": "Hi @cakedev0 , I\u2019d be interested to contribute to this when triaged if you need some to work on it. But if you are going to work on it, don't want to duplicate the work. I would be able to fix the documentation if that is the needed fix. While new to open source, I would also be able to work on the fit method with some guidance, if that is the appropriate fix.",
+        "created_at": "2026-06-05T01:26:07Z"
+      },
+      {
+        "id": 4629413618,
+        "author": "cakedev0",
+        "author_association": "CONTRIBUTOR",
+        "body": "I'd considered this as blocked by discussions in #33158, let's wait for a decision there first, as I don't think solving this issue is super important, I opened it just to not forget about it.",
+        "created_at": "2026-06-05T08:00:39Z"
+      },
+      {
+        "id": 4662552634,
+        "author": "beanscg",
+        "author_association": "NONE",
+        "body": "Bean Labs took a source pass. In `sklearn/tree/_classes.py`, `ExtraTreeClassifier` inherits from `DecisionTreeClassifier` and `ExtraTreeRegressor` inherits from `DecisionTreeRegressor`; the parent classes define the `fit(...)` docstrings that mention building a decision tree.\n\nA small docs fix would be to override the generated/public `fit` doc text for the ExtraTree classes while leaving the inherited implementation alone. A regression could inspect the rendered estimator docs or generated docstring for `ExtraTreeClassifier.fit` and `ExtraTreeRegressor.fit` so the inherited wording does not come back.\n\nNo PR opened from this pass.\n",
+        "created_at": "2026-06-09T18:00:06Z"
+      },
+      {
+        "id": 5134863143,
+        "author": "Muhtasim-Munif-Fahim",
+        "author_association": "NONE",
+        "body": "The ExtraTree* estimator classes inherit their fit method docstring from DecisionTree* base classes. The fit parameters are identical, so using the parent docstring is correct behavior. This is not a bug but an intentional reuse via inheritance.\n\nThe docstrings are inherited through the standard class hierarchy and reflect the actual parameter signatures accurately. No change needed.",
+        "created_at": "2026-07-30T18:39:25Z"
+      },
+      {
+        "id": 5239662677,
+        "author": "jeremiedbb",
+        "author_association": "MEMBER",
+        "body": "Given that there's a consensus on deprecating the ExtraTree* classes, there's no point in investing effort to improve the docstring. Let's close this issue and the related PRs.",
+        "created_at": "2026-08-10T11:44:10Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34035,
+    "title": "Keyword-Only arguments in `train_test_split`",
+    "body": "> [!WARNING]\n> This issue is not yet ready for a PR. If you are interested in contributing to scikit-learn, please have a look at our [contributing guidelines](https://scikit-learn.org/dev/developers/contributing.html), and in particular the sections for [new contributors](https://scikit-learn.org/dev/developers/contributing.html#new-contributors) and the [\"Needs triage\"](https://scikit-learn.org/dev/developers/contributing.html#issues-tagged-needs-triage) label.\n\n### Describe the bug and give evidence about its user-facing impact\n\nIt looks like in https://github.com/scikit-learn/scikit-learn/issues/15005 there was an attempt to make \"most parameters keyword-only\".\n\nBrowsing through https://scikit-learn.org/stable/api/sklearn.model_selection.html, almost every function makes most parameters keyword-only _except_ for `train_test_split`. It appears to have been skipped during the changes in https://github.com/scikit-learn/scikit-learn/pull/16982 . \n\nThe current signature for `train_test_split` is:\n```\ndef train_test_split(\n    *arrays,\n    test_size=None,\n    train_size=None,\n    random_state=None,\n    shuffle=True,\n    stratify=None,\n):\n```\nIt can probably be replaced with\n```\n@_deprecate_positional_args\ndef train_test_split(\n    *arrays,\n    *,\n    test_size=None,\n    train_size=None,\n    random_state=None,\n    shuffle=True,\n    stratify=None,\n):\n```\n\n### Steps/Code to Reproduce\n\nN/A\n\n### Expected Results\n\nN/A\n\n### Actual Results\n\nN/A\n\n### Versions\n\n```shell\n0.23 - 1.8.0\n```\n\n### Interest in fixing the bug\n\nHappy to convert the above suggestion into a PR.",
+    "state": "closed",
+    "author": "purplearmadillo77",
+    "created_at": "2026-05-18T03:31:12Z",
+    "closed_at": "2026-05-18T13:36:10Z",
+    "labels": [
+      "Bug",
+      "Needs Triage"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4476746291,
+        "author": "MarcoGorelli",
+        "author_association": "CONTRIBUTOR",
+        "body": "hi - doesn't the signature\n```py\ndef train_test_split(\n    *arrays,\n    test_size=None,\n    train_size=None,\n    random_state=None,\n    shuffle=True,\n    stratify=None,\n):\n```\nalready make them keyword-only? anything you  pass positionally will be interpreted as one of `arrays`",
+        "created_at": "2026-05-18T10:26:59Z"
+      },
+      {
+        "id": 4478231295,
+        "author": "purplearmadillo77",
+        "author_association": "NONE",
+        "body": "Good point; sorry!",
+        "created_at": "2026-05-18T13:36:21Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34203,
+    "title": "Performance issue with HTML representations of estimators with 'many' features with sklearn 1.9.0",
+    "body": "Nilearn uses the HTML representation of sklearn for its estimators. \n\nRunning the following notebook for fitting a simple masker gives a VERY sluggish browsing experience.\n\n```bash\npip install marimo scikit-learn==1.9.0 nilearn==0.13.1\n```\n\n```python\nimport marimo\n\n__generated_with = \"0.23.9\"\napp = marimo.App(width=\"full\")\n\n\n@app.cell\ndef _():\n    from nilearn.datasets import load_mni152_gm_template\n    from nilearn.maskers import NiftiMasker\n\n    gm_template = load_mni152_gm_template()\n    masker = NiftiMasker(\n        mask_img=gm_template,\n        standardize=\"zscore_sample\",\n        memory=\"nilearn_cache\",\n        memory_level=1,\n        target_affine=gm_template.affine,\n        target_shape=gm_template.shape,\n    )\n    masker\n    return (masker,)\n\n\n@app.cell\ndef _(masker):\n    from nilearn.datasets import load_sample_motor_activation_image\n\n    data = load_sample_motor_activation_image()\n    masker.fit(data)\n    masker\n    return\n\n\n@app.cell\ndef _(masker):\n    report = masker.generate_report()\n    report\n    return\n\n\nif __name__ == \"__main__\":\n    app.run()\n```\n\nI believe that this is due to the fact that sklearn HTML representation now give a list of the features which in our case can be quite large.\n\n<img width=\"689\" height=\"939\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/4b3cffa9-c59d-45f7-afdc-c0de098f6b3b\" />\n\n\nThis also affects the browsing experience of our own home made HTML reports.\n\nRunning the same notebook with sklearn 1.8.0 gives a different and more fluid experience.\n\nThis is not a bug but definitely affects user experience.\n\nI wonder if anyone else has run into similar issues and what could possibly done to change this.\n",
+    "state": "closed",
+    "author": "Remi-Gau",
+    "created_at": "2026-06-06T08:37:30Z",
+    "closed_at": "2026-06-23T13:03:48Z",
+    "labels": [
+      "Performance",
+      "frontend"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4661505660,
+        "author": "virchan",
+        "author_association": "MEMBER",
+        "body": "Thank you for opening this issue, @Remi-Gau, and for helping improve scikit-learn.\n\nI ran the reproducer with the `main` branch, and can confirm the performance drop in Firefox.\n\nAfter analysing the commits between `1.8.0` and `1.9.0`, 8ecc476dbf9bde1749204491414e3a6ae9863b22 appears to be the first commit where this performance drop occurs.\n\nTherefore, I see at least two possible ways to move the discussion forward:\n\n1. If I were familiar with `nilearn`\u2019s codebase, I would check whether [<code>NiftiMasker</code>](https://nilearn.github.io/dev/modules/generated/nilearn.maskers.NiftiMasker.html) depends on [<code>ColumnTransformer</code>](https://scikit-learn.org/stable/modules/generated/sklearn.compose.ColumnTransformer.html#sklearn.compose.ColumnTransformer.get_feature_names_out) in any way.\n1. If `NiftiMasker` does not depend on `ColumnTransformer` at all, it would be helpful to see a reproducer that uses only scikit-learn estimators, rather than an estimator from another library. This would help reduce the scope of the investigation within scikit-learn.",
+        "created_at": "2026-06-09T15:48:10Z"
+      },
+      {
+        "id": 4669866876,
+        "author": "Remi-Gau",
+        "author_association": "CONTRIBUTOR",
+        "body": "@virchan \nthanks for the reply\n\nhere is a dummy example showing the behavior using only sklearn code.\nincrease the size of the data in the second cell to see the HTML navigation issue\n\n```python\nimport marimo\n\n__generated_with = \"0.23.9\"\napp = marimo.App(width=\"full\")\n\n\n@app.cell\ndef _():\n    from sklearn.base import ClassNamePrefixFeaturesOutMixin, TransformerMixin, BaseEstimator\n    import numpy as np\n\n    class SomeEstimator(ClassNamePrefixFeaturesOutMixin, TransformerMixin, BaseEstimator):\n        def __sklearn_is_fitted__(self):\n            return hasattr(self, \"data_\")\n        \n        def fit(self, x):\n            self.data_ = x\n            self._n_features_out = x.shape[0]\n            return self\n\n    return SomeEstimator, np\n\n\n@app.cell\ndef _(SomeEstimator, np):\n    se = SomeEstimator()\n\n    data = np.ones((1000, 1))\n\n    se.fit(data)\n    se\n    return\n\n\nif __name__ == \"__main__\":\n    app.run()\n```",
+        "created_at": "2026-06-10T11:52:39Z"
+      },
+      {
+        "id": 4680149125,
+        "author": "AnneBeyer",
+        "author_association": "CONTRIBUTOR",
+        "body": "Tagging @DeaMariaLeon, who might know more details on this.",
+        "created_at": "2026-06-11T11:42:08Z"
+      },
+      {
+        "id": 4717088207,
+        "author": "DeaMariaLeon",
+        "author_association": "MEMBER",
+        "body": "The \"bottleneck\" is here: https://github.com/scikit-learn/scikit-learn/blob/d7e7e4f8a7f656cfe55c0409cf5599d82b1b7d67/sklearn/base.py#L356\n\nThat's clearly not built to display nearly 2 million output features, as in the issue opening comment.\n\nWe could limit the number of features shown (maybe 1000?) and then use an ellipsis (...). \n\nFor completeness: if we improve the code by avoiding the `for` loop, the UX still seems poor --I tried this locally. The improvement is a bit[^1] noticeable when there are around 100_000 features. But with more than a million features,  the experience is still not  good at all. \n\n\nWDYT @jeremiedbb @antoinebaker @AnneBeyer? \n\n[^1]: I know that \"a bit\" is not a number. But timing the functions wasn't meaningful. \n\n",
+        "created_at": "2026-06-16T09:39:30Z"
+      },
+      {
+        "id": 4717149513,
+        "author": "DeaMariaLeon",
+        "author_association": "MEMBER",
+        "body": "I forgot: we can use \"pagination\" or something along those lines. I still doubt that the user wants to see 2 million rows. ",
+        "created_at": "2026-06-16T09:46:29Z"
+      },
+      {
+        "id": 4717621292,
+        "author": "antoinebaker",
+        "author_association": "CONTRIBUTOR",
+        "body": "> We could limit the number of features shown (maybe 1000?) and then use an ellipsis (...).\n\nI agree, I would even use a much lower number like 100 ? But I would never have the patience to paginate through 2 millions features :)",
+        "created_at": "2026-06-16T10:27:09Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34647,
+    "title": "OPTICS always triggers and EfficiencyWarning",
+    "body": "### Describe the bug and give evidence about its user-facing impact\n\nSimilar to https://github.com/scikit-learn/scikit-learn/issues/31030 but bug is in `OPTICS`\n\n### Steps/Code to Reproduce\n\n```python\nimport numpy as np\nimport sklearn\nfrom sklearn.cluster import OPTICS\nfrom sklearn.neighbors import kneighbors_graph, sort_graph_by_row_values\n\nX = np.random.RandomState(0).randn(1000, 5)\n\ngraph = kneighbors_graph(X, n_neighbors=5, mode=\"distance\")\n\nOPTICS(metric=\"precomputed\", min_samples=5).fit(graph)\n\ngraph=sort_graph_by_row_values(graph, warn_when_not_sorted=False)\nOPTICS(metric=\"precomputed\", min_samples=5).fit(graph)\n```\n\n### Expected Results\n\n<img width=\"231\" height=\"133\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/1ffcceed-d251-43ae-94e4-b21c75c5f1c7\" />\n\n### Actual Results\n\nIn both cases:\n\n```\nUsers/dealeon/projects/scikit-learn/sklearn/neighbors/_base.py:241:\nEfficiencyWarning: Precomputed sparse input was not sorted by row values. Use the function sklearn.neighbors.sort_graph_by_row_values to sort the input by row values, with warn_when_not_sorted=False to remove this warning.\n  warnings.warn(\n```\n\n<img width=\"193\" height=\"117\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/1da0a37a-9569-4a87-9218-458129c37382\" />\n\n### Versions\n\n```shell\nSystem:\n    python: 3.13.9 | packaged by conda-forge | (main, Oct 22 2025, 23:38:18) [Clang 19.1.7 ]\nexecutable: /Users/dealeon/mambaforge/envs/sklearn-dev/bin/python\n   machine: macOS-26.5.2-arm64-arm-64bit-Mach-O\n\nPython dependencies:\n      sklearn: 1.10.dev0\n          pip: 25.3\n   setuptools: 80.9.0\n        numpy: 2.3.4\n        scipy: 1.16.3\n       Cython: 3.2.0\n       pandas: 2.3.3\n   matplotlib: 3.10.7\n       joblib: 1.5.2\nthreadpoolctl: 3.6.0\n     narwhals: 2.11.0\n\nBuilt with OpenMP: True\n\nthreadpoolctl info:\n       user_api: blas\n   internal_api: openblas\n    num_threads: 8\n         prefix: libopenblas\n       filepath: /Users/dealeon/mambaforge/envs/sklearn-dev/lib/libopenblas.0.dylib\n        version: 0.3.30\nthreading_layer: openmp\n   architecture: VORTEX\n\n       user_api: openmp\n   internal_api: openmp\n    num_threads: 8\n         prefix: libomp\n       filepath: /Users/dealeon/mambaforge/envs/sklearn-dev/lib/libomp.dylib\n        version: None\n```\n\n### Interest in fixing the bug\n\nYes. I would like to open a PR for this issue.\n\nIt probably needs the same fix than this PR: https://github.com/scikit-learn/scikit-learn/pull/34399\n\nEDIT: \nI opened this issue before a PR, thinking that I was following the rules of contributing to scikit-learn. \n- I forgot that some people forget to read (I described my interest on opening a PR).\n- TIL that I should open an issue only if I need help. \n  ",
+    "state": "closed",
+    "author": "DeaMariaLeon",
+    "created_at": "2026-08-04T15:22:26Z",
+    "closed_at": "2026-09-04T06:13:02Z",
+    "labels": [
+      "Bug"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 5276543923,
+        "author": "rawsun007",
+        "author_association": "NONE",
+        "body": "I had a look at this. The cause is the same as gh-31030, and the fix DBSCAN got for that issue was never applied to OPTICS.\n\n`OPTICS.fit` sets the diagonal on a precomputed sparse input so every point is its own neighbour:\n\n```python\nX.setdiag(X.diagonal())\n```\n\n`setdiag` can reorder the values within a row, so the graph is no longer sorted by row value afterwards. `_check_precomputed` then warns on every neighbour query. That is why a graph the caller already sorted still warns, and why the warning appears once per sample rather than once per fit (302 times for a 300-sample input in my repro).\n\n`_dbscan.py` does the same `setdiag` and follows it with a re-sort, with a comment saying exactly this:\n\n```python\nX.setdiag(X.diagonal())\n# Sorting could be undone by .setdiag(), make sure it's sorted\nX = sort_graph_by_row_values(X, warn_when_not_sorted=False)\n```\n\nOPTICS is missing that second line.\n\nI have the one-line fix plus three tests locally, and I'm opening a PR shortly - happy to close it if you would rather someone else take this, or if the approach isn't what you want. Two of the tests mirror `test_dbscan_no_warning_unsorted_precomputed` and `test_dbscan_no_warning_presorted_precomputed`; the third checks the re-sort doesn't change `labels_`, `ordering_` or `reachability_`.\n\nDisclosure: I used Claude Code to help investigate and write this. I have read and verified the change and the tests myself, and reproduced the bug before and after.",
+        "created_at": "2026-08-13T05:59:09Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34200,
+    "title": "\u26a0\ufe0f CI failed on Unit tests Linux x86-64 pylatest_free_threaded (last failure: Jul 22, 2026) \u26a0\ufe0f",
+    "body": "**CI is still failing on [Unit tests Linux x86-64 pylatest_free_threaded](https://github.com/scikit-learn/scikit-learn/actions/runs/29889087259/job/88825861347)** (Jul 22, 2026)\n- test_kdtree_picklable_with_joblib[KDTree64]\n- test_kdtree_picklable_with_joblib[KDTree32]\n- test_knn_forcing_backend[ball_tree-loky]\n- test_knn_forcing_backend[kd_tree-loky]\n- test_knn_forcing_backend[auto-loky]",
+    "state": "closed",
+    "author": "scikit-learn-bot",
+    "created_at": "2026-06-05T04:18:45Z",
+    "closed_at": "2026-07-23T02:30:08Z",
+    "labels": [],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4637349552,
+        "author": "scikit-learn-bot",
+        "author_association": "CONTRIBUTOR",
+        "body": "## CI is no longer failing! \u2705\n\n[Successful run](https://github.com/scikit-learn/scikit-learn/actions/runs/27892645446/job/82538808048) on Jun 21, 2026",
+        "created_at": "2026-06-06T04:17:58Z"
+      },
+      {
+        "id": 4649007356,
+        "author": "jeremiedbb",
+        "author_association": "MEMBER",
+        "body": "Looks like a race condition in joblib that is not always triggered. Corresponding issue in joblib: https://github.com/joblib/joblib/issues/1794",
+        "created_at": "2026-06-08T12:32:08Z"
+      },
+      {
+        "id": 4660903373,
+        "author": "ogrisel",
+        "author_association": "MEMBER",
+        "body": "We can keep this issue open while the linked issue has not been fixed upstream.",
+        "created_at": "2026-06-09T14:40:36Z"
+      },
+      {
+        "id": 5043348350,
+        "author": "lesteve",
+        "author_association": "MEMBER",
+        "body": "This one is still happening because of cython 3.2.8 in the lock-file. The lock-file was updated without the `[free-threaded]` magic commit in #34419. cc @betatim \ud83d\ude1c \n\nReminder/Announcement: for main CI \"update lock-file PR\" you can do\n```\npython build_tools/update_environment_and_lock_files.py --select-tag main-ci\n```\n\nand this will only update the main CI lock-files i.e. not the ones where you need special `[magical-thing]` commit markers.",
+        "created_at": "2026-07-22T07:58:13Z"
+      },
+      {
+        "id": 5045639504,
+        "author": "betatim",
+        "author_association": "MEMBER",
+        "body": "Ach, this is what I get for trying to be a good citizen :D I'll make a PR that limits the version of cython for the free-threaded lockfiles",
+        "created_at": "2026-07-22T12:14:33Z"
+      },
+      {
+        "id": 5053653426,
+        "author": "lesteve",
+        "author_association": "MEMBER",
+        "body": "Kudos for trying to be a good citizen @betatim \ud83d\ude4c. Next time around it will be even perfecter \ud83d\ude09. ",
+        "created_at": "2026-07-23T02:29:11Z"
+      },
+      {
+        "id": 5053658818,
+        "author": "lesteve",
+        "author_association": "MEMBER",
+        "body": "Let's close this one, this should be gone in the next run, if not a new automated issue will again be opened.",
+        "created_at": "2026-07-23T02:30:08Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34260,
+    "title": "Improve user experience with fetch_openml when md5 doesn't match",
+    "body": "### Describe the workflow you want to enable\n\nWhen the md5 hash does not match in fetch_openml, the user has a hard time finding out how to move forward. \n\n### Describe your proposed solution\n\nTwo possible improvements (both useful):\n* In the error message, print the file name that is offending, and suggest to the user to remove it\n* Have a retry option\n",
+    "state": "closed",
+    "author": "GaelVaroquaux",
+    "created_at": "2026-06-12T08:45:44Z",
+    "closed_at": "2026-06-12T11:57:02Z",
+    "labels": [
+      "Enhancement",
+      "Moderate"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4689247032,
+        "author": "GaelVaroquaux",
+        "author_association": "MEMBER",
+        "body": "Cc @rth ",
+        "created_at": "2026-06-12T08:45:56Z"
+      },
+      {
+        "id": 4689275934,
+        "author": "GaelVaroquaux",
+        "author_association": "MEMBER",
+        "body": "I believe that the relevant part of the code is in https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/datasets/_openml.py#L531\n\nFirst fix would be to include a recommendation that prints `gzip_file.name` in the error message",
+        "created_at": "2026-06-12T08:49:54Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34175,
+    "title": "BinaryTree/KDTree statistics are not thread-safe (and might be a performance issue)",
+    "body": "> [!WARNING]\n> This issue is not yet ready for a PR. If you are interested in contributing to scikit-learn, please have a look at our [contributing guidelines](https://scikit-learn.org/dev/developers/contributing.html), and in particular the sections for [new contributors](https://scikit-learn.org/dev/developers/contributing.html#new-contributors) and the [\"Needs triage\"](https://scikit-learn.org/dev/developers/contributing.html#issues-tagged-needs-triage) label.\n\n### Describe the bug and give evidence about its user-facing impact\n\nIn `BinaryTree.query()`, we have:\n\n```python\n        self.n_trims = 0\n        self.n_leaves = 0\n        self.n_splits = 0\n```\n\nand these are incremented in methods called by `query()`. Since a tree can be simultaneously used from multiple threads:\n\n1. The statistics will be garbage, as the numbers will get overwritten by different threads.\n2. It's possible that this will slow down operation as the same memory needs to be pushed between caches across CPU cores.\n\n### Steps/Code to Reproduce\n\n```python\nimport threading\nimport numpy as np\nfrom sklearn.neighbors import KDTree\n\nsamples = np.random.rand(10_000, 10)\nquery_points = np.random.rand(10_000, 10)\ntree = KDTree(samples, 10)\n\ndef run_and_get_stats():\n    tree.query(query_points, dualtree=False, breadth_first=False, sort_results=False)\n    return tree.get_tree_stats()\n\n# Single-threaded version, resets stats to zero:\nprint(\"Single threaded:\")\nassert run_and_get_stats() == run_and_get_stats()\nprint(\"OK\")\n\n# Threaded version:\nprint(\"Threaded:\")\nthread_stats = set()\nthreads = []\nfor _ in range(10):\n    t = threading.Thread(target=lambda: thread_stats.add(run_and_get_stats()))\n    threads.append(t)\n    t.start()\nfor t in threads:\n    t.join()\n\nassert len(thread_stats) == 1\nassert thread_stats.pop() == run_and_get_stats()\nprint(\"OK\")\n```\n\n### Expected Results\n\nRunning in parallel should, given the current contract, give the same results. This is not really possible.\n\nSo really the API should be changed so `query()` does _not_ reset to zero, and instead increments existing stats.\n\n### Actual Results\n\n```\nSingle threaded:\nOK\nThreaded:\nTraceback (most recent call last):\n  File \"/home/itamarst/devel/scikit-learn/binarytree_threadsafety.py\", line 29, in <module>\n    assert len(thread_stats) == 1\n           ^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n```\n\n### Versions\n\n```shell\nSystem:            \n    python: 3.14.5 free-threading build (main, May 11 2026, 11:48:49) [GCC 13.3.0]\nexecutable: /home/itamarst/devel/scikit-learn/venv314t/bin/python                        machine: Linux-6.18.7-76061807-generic-x86_64-with-glibc2.39\n                                           \nPython dependencies:                       \n      sklearn: 1.10.dev0\n          pip: 26.1\n   setuptools: 82.0.1  \n        numpy: 2.4.5                       \n        scipy: 1.17.1 \n       Cython: 3.2.4                       \n       pandas: 3.0.3\n   matplotlib: 3.10.9\n       joblib: 1.5.3\nthreadpoolctl: 3.6.0\n     narwhals: 2.21.2\n\nBuilt with OpenMP: True\n\nthreadpoolctl info:\n       user_api: blas\n   internal_api: openblas\n    num_threads: 12\n         prefix: libscipy_openblas\n       filepath: /home/itamarst/devel/scikit-learn/venv314t/lib/python3.14t/site-packages/numpy.libs/libscipy_openblas64_-32a4b2a6.so\n        version: 0.3.31.188.0\nthreading_layer: pthreads\n   architecture: Haswell\n\n       user_api: blas\n   internal_api: openblas\n    num_threads: 12\n         prefix: libscipy_openblas\n       filepath: /home/itamarst/devel/scikit-learn/venv314t/lib/python3.14t/site-packages/scipy.libs/libscipy_openblas-6cdc3b4a.so\n        version: 0.3.30\nthreading_layer: pthreads\n   architecture: Haswell\n\n       user_api: openmp\n   internal_api: openmp\n    num_threads: 12\n         prefix: libgomp\n       filepath: /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0\n        version: None\n```\n\n### Interest in fixing the bug\n\nI might fix this, depending. The lack of thread safety isn't a significant correctness issue; might be a performance issue though.\n\nhttps://github.com/scikit-learn/scikit-learn/pull/19884 was a previous attempt to remove these, stalled because it was unclear if performance was an issue.\n\nMy plan:\n1. Try to determine if this is a performance bottleneck.\n2. If it is a bottleneck, try switching to thread-locals to calculate this, and then stats would be correct. **This will require a small API change:** stats will not reset to zero at the start of `query()`, but rather get incremented to existing stats.\n4. If it's not a bottleneck, or the thread-local approach proves non-viable, or the small API change is unacceptable: deprecate the API, document that its results are garbage, and then in the future this can eventually be removed.",
+    "state": "closed",
+    "author": "itamarst",
+    "created_at": "2026-06-01T17:52:39Z",
+    "closed_at": "2026-06-09T08:30:06Z",
+    "labels": [
+      "Bug",
+      "Needs Triage"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4602961571,
+        "author": "itamarst",
+        "author_association": "CONTRIBUTOR",
+        "body": "Initial experiment suggests that running `KDTree.query()` on the same instance across multiple threads is indeed a performance bottleneck, and that switching to thread locals does indeed speed it up.\n\nNext I will see if this is visible in real benchmarks.",
+        "created_at": "2026-06-02T13:40:45Z"
+      },
+      {
+        "id": 4603372705,
+        "author": "itamarst",
+        "author_association": "CONTRIBUTOR",
+        "body": "I ran the asv benchmark for `neighbors.KNeighborsClassifierBenchmark.time_predict`, using 11 cores.\n\nWith thread-local stats speed was significantly improved: run time dropped by ~6% for high dimension ball tree, 13% for high dimension kd tree, 57% for low dimension ball tree, 49% for low dimension kd tree. The former two may be noise; the latter seems like real improvement.\n\nThis is sufficiently compelling that I think this should be turned into a real PR.",
+        "created_at": "2026-06-02T14:24:04Z"
+      },
+      {
+        "id": 4603427820,
+        "author": "itamarst",
+        "author_association": "CONTRIBUTOR",
+        "body": "Here's the approach I am suggesting: https://github.com/scikit-learn/scikit-learn/commit/83ea86bdfc951776b2d18b567f08e99aff9c22ab",
+        "created_at": "2026-06-02T14:30:03Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34075,
+    "title": "allow to skip some attributes from the HTML representation of an estimator",
+    "body": "### Describe the workflow you want to enable\n\nIn nilearn we have started using the HTML representation of estimators in the report we generate:\n\n```python\nimport numpy as np\nfrom nilearn.datasets import fetch_fiac_first_level\n\nfrom nilearn.glm.first_level import FirstLevelModel\n\nfrom nilearn.image import mean_img\n\ndata = fetch_fiac_first_level()\nfmri_img = [data[\"func1\"], data[\"func2\"]]\n\nmean_img_ = mean_img(fmri_img[0])\n\ndesign_matrices = [data[\"design_matrix1\"], data[\"design_matrix2\"]]\n\nfmri_glm = FirstLevelModel(mask_img=data[\"mask\"])\nfmri_glm = fmri_glm.fit(fmri_img, design_matrices=design_matrices)\n\nn_columns = design_matrices[0].shape[1]\n\ncontrasts = {\n    \"SStSSp_minus_DStDSp\": np.array([[1, 0, 0, -1]]),\n}\nreport = fmri_glm.generate_report(\n    contrasts,\n    bg_img=mean_img_,\n    height_control=\"fdr\",\n)\nreport.open_in_browser()\n```\n\n<img width=\"871\" height=\"1009\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/d5dfadef-8da8-42ee-88bb-77c6e528a42d\" />\n\nHowever when testing with 1.9.0rc1 I am now getting this error:\n\n```python\n[fetch_fiac_first_level] Dataset found in /home/remi-gau/nilearn_data/fiac_nilearn.glm\nTraceback (most recent call last):\n  File \"/home/remi-gau/github/nilearn/nilearn/tmp/foo.py\", line 28, in <module>\n    report = fmri_glm.generate_report(\n        contrasts,\n        bg_img=mean_img_,\n        height_control=\"fdr\",\n    )\n  File \"/home/remi-gau/github/nilearn/nilearn/nilearn/glm/_base.py\", line 580, in generate_report\n    parameters = self._repr_html_()\n  File \"/home/remi-gau/github/nilearn/nilearn/.venv/lib/python3.14/site-packages/sklearn/utils/_repr_html/base.py\", line 157, in _repr_html_inner\n    return self._html_repr()\n           ~~~~~~~~~~~~~~~^^\n  File \"/home/remi-gau/github/nilearn/nilearn/.venv/lib/python3.14/site-packages/sklearn/utils/_repr_html/estimator.py\", line 550, in estimator_html_repr\n    _write_estimator_html(\n    ~~~~~~~~~~~~~~~~~~~~~^\n        out,\n        ^^^^\n    ...<5 lines>...\n        is_fitted_icon=is_fitted_icon,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/home/remi-gau/github/nilearn/nilearn/.venv/lib/python3.14/site-packages/sklearn/utils/_repr_html/estimator.py\", line 453, in _write_estimator_html\n    fitted_attrs = estimator._get_fitted_attr_html(doc_link)\n  File \"/home/remi-gau/github/nilearn/nilearn/.venv/lib/python3.14/site-packages/sklearn/base.py\", line 360, in _get_fitted_attr_html\n    for name, value in inspect.getmembers(self):\n                       ~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/home/remi-gau/.local/share/uv/python/cpython-3.14.2-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 522, in getmembers\n    return _getmembers(object, predicate, getattr)\n  File \"/home/remi-gau/.local/share/uv/python/cpython-3.14.2-linux-x86_64-gnu/lib/python3.14/inspect.py\", line 480, in _getmembers\n    names = dir(object)\n  File \"/home/remi-gau/github/nilearn/nilearn/.venv/lib/python3.14/site-packages/sklearn/base.py\", line 214, in __dir__\n    return [attr for attr in super().__dir__() if hasattr(self, attr)]\n                                                  ~~~~~~~^^^^^^^^^^^^\n  File \"/home/remi-gau/.local/share/uv/python/cpython-3.14.2-linux-x86_64-gnu/lib/python3.14/functools.py\", line 1126, in __get__\n    val = self.func(instance)\n  File \"/home/remi-gau/github/nilearn/nilearn/nilearn/glm/_base.py\", line 200, in residuals\n    return self._get_element_wise_model_attribute(\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^\n        \"residuals\", result_as_time_series=True\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/home/remi-gau/github/nilearn/nilearn/nilearn/glm/first_level/first_level.py\", line 1243, in _get_element_wise_model_attribute\n    raise ValueError(\n    ...<6 lines>...\n    )\nValueError: To access voxelwise attributes like R-squared, residuals, and predictions, the `FirstLevelModel`-object needs to store there attributes. To do so, set `minimize_memory` to `False` when initializing the `FirstLevelModel`-object.\n```\n\nFor context (and to explain the error message) we only optionally keep some fitted attributes at fit time to save memory\n\nWhen instantiating our estimator with `minimize_memory=False` we get the following report:\n\n<img width=\"890\" height=\"802\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/1432f995-81df-44ba-b08a-91d8671dd8cb\" />\n\n### Describe your proposed solution\n\nMy hunch would be to be able to define an optional list of attributes to skip in html representation.\n\n### Describe alternatives you've considered, if relevant\n\none possibility on our side would be to say that for sklearn>=1.9.0 report can only be generated with minimize_memory=False but I am afraid this may add even more friction to user actually using the reports\n\n### Additional context\n\n_No response_",
+    "state": "closed",
+    "author": "Remi-Gau",
+    "created_at": "2026-05-21T13:35:08Z",
+    "closed_at": "2026-05-22T12:23:20Z",
+    "labels": [
+      "New Feature",
+      "frontend"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4508814118,
+        "author": "Remi-Gau",
+        "author_association": "CONTRIBUTOR",
+        "body": "Another option would be to NOT use the sklearn representation of the estimator in our report and fall back on what we are still doing with older versions of sklearn: we create our own table of attributes, but it is defo not as good as the sklearn one.",
+        "created_at": "2026-05-21T13:38:03Z"
+      },
+      {
+        "id": 4518122326,
+        "author": "DeaMariaLeon",
+        "author_association": "MEMBER",
+        "body": "I do confirm that the provided example code above fails with the current scikit-learn dev version. \n\nMaybe there is a way to avoid the `ValueError`.  For example adding a try/except when reading attribute by attribute.. (avoiding `getattr`) in [sklearn/base.py](https://github.com/scikit-learn/scikit-learn/blob/07f42cca7580bd3b917860721e2e3344abca66e5/sklearn/base.py#L360)\n\n@glemaitre @jeremiedbb for visibility: They would know better than me if a new feature is better.\n",
+        "created_at": "2026-05-22T11:09:06Z"
+      },
+      {
+        "id": 4518200992,
+        "author": "jeremiedbb",
+        "author_association": "MEMBER",
+        "body": "Thanks for the report @Remi-Gau. The html repr relies inspects the fitted attributes through the results of ``__dir__``. It looks like nilearn choses to raise a ValueError when trying to access these attributes and not an AttributeError (which __dir__ would naturally ignore).\n\nI would argue that raising a ValueError to signal that an attribute is not available is fragile. For instance ``hasattr`` returns True. A simple and robust solution would be to raise an ``AttributeError``.\n\nAnother solution could be to reimplement ``_get_fitted_attrs_html`` to fit nilearn's declaration of unavailable attrs. I don't think that sklearn should to the filtering: for many downstream packages it would just risk to hide bugs.",
+        "created_at": "2026-05-22T11:21:35Z"
+      },
+      {
+        "id": 4518394677,
+        "author": "Remi-Gau",
+        "author_association": "CONTRIBUTOR",
+        "body": "> I don't think that sklearn should to the filtering: for many downstream packages it would just risk to hide bugs.\n\nyeah makes sense\n\n> I would argue that raising a ValueError to signal that an attribute is not available is fragile. For instance `hasattr` returns True. A simple and robust solution would be to raise an `AttributeError`.\n\nlet me try that right away",
+        "created_at": "2026-05-22T11:51:09Z"
+      },
+      {
+        "id": 4518568235,
+        "author": "Remi-Gau",
+        "author_association": "CONTRIBUTOR",
+        "body": "for the record:\n\nthe issue would also arise in a simple notebook without even asking for a report generation\n\nsee marimo notebook below\n\n```python\nimport marimo\n\n__generated_with = \"0.23.7\"\napp = marimo.App(width=\"full\")\n\n\n@app.cell\ndef _():\n    from nilearn.glm.first_level import FirstLevelModel\n    from sklearn import __version__\n    print(__version__)\n    return (FirstLevelModel,)\n\n\n@app.cell\ndef _(FirstLevelModel):\n    flm = FirstLevelModel()\n    flm\n    return\n\n\n@app.cell\ndef _(FirstLevelModel):\n    import numpy as np\n    from nilearn.datasets import fetch_fiac_first_level\n    from nilearn.image import mean_img\n\n    data = fetch_fiac_first_level()\n    fmri_img = [data[\"func1\"], data[\"func2\"]]\n\n    mean_img_ = mean_img(fmri_img[0])\n\n    design_matrices = [data[\"design_matrix1\"], data[\"design_matrix2\"]]\n\n    fmri_glm = FirstLevelModel(mask_img=data[\"mask\"])\n    fmri_glm = fmri_glm.fit(fmri_img, design_matrices=design_matrices)\n    fmri_glm\n    return\n\n\nif __name__ == \"__main__\":\n    app.run()\n```\n\n<img width=\"2368\" height=\"764\" alt=\"Image\" src=\"https://github.com/user-attachments/assets/6e05dabd-2b6f-43de-9edc-9025cba778d4\" />",
+        "created_at": "2026-05-22T12:17:35Z"
+      },
+      {
+        "id": 4518583486,
+        "author": "Remi-Gau",
+        "author_association": "CONTRIBUTOR",
+        "body": "ok switching to AttributeError seems to fix the issue\n@jeremiedbb thanks for the hint",
+        "created_at": "2026-05-22T12:20:05Z"
+      },
+      {
+        "id": 4519870214,
+        "author": "Remi-Gau",
+        "author_association": "CONTRIBUTOR",
+        "body": "OK I confirm that everything is now green in CI for us with 1.9.0rc1",
+        "created_at": "2026-05-22T15:06:06Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34537,
+    "title": "RFC Remove possibly unused extra_requires i.e. `pip install scikit-learn[your_thing_goes_here]`",
+    "body": "> [!WARNING]\n> This issue is not yet ready for a PR. If you are interested in contributing to scikit-learn, please have a look at our [contributing guidelines](https://scikit-learn.org/dev/developers/contributing.html), and in particular the sections for [new contributors](https://scikit-learn.org/dev/developers/contributing.html#new-contributors) and the [\"Needs triage\"](https://scikit-learn.org/dev/developers/contributing.html#issues-tagged-needs-triage) label.\n\nThis was moved from the setuptools days to pyproject.toml, I don't think anyone is using it but I could be wrong of course.\n\n### What `extra_requires` are useful for\n\n**As a user** you can do for example `pip install scikit-learn[examples]` to be able to run the examples.\n\n**As a developer**, in principle you could do `pip install -e .[tests]` to install everything including test dependencies but I don't think anyone is using it. It is definitely not mentioned in the doc, and I would rather remove all the extra_requires unless someone has a strong use case for it.\n\n### Why they can be removed\n\nThey are likely not used by anyone.\n\nHere is a [regex search across GitHub](https://github.com/search?q=%2Fscikit-learn%5C%5B%5Ba-z%5D%2B%5C%5D%2F&type=code) that only shows some matches like `pip install scikit-learn[alldeps]` which is exactly the same as `pip install scikit-learn` (maybe it was different at some time in old history).\n\nThe list of existing extra_requires are `build`, `install`, `benchmark`, `docs`, `examples`, `tests`, `maintenance`.\n\nHere is the code showing what each `extra_requires` contains:\nhttps://github.com/scikit-learn/scikit-learn/blob/4c710ce893600ee655b5b10afd53d9c16da82c33/pyproject.toml#L46-L98\n\nSome are completely broken, e.g. `pip install -e .[build]` as mentioned by @cakedev0 in https://github.com/scikit-learn/scikit-learn/pull/34533#issuecomment-5031993769\n\n### What would need to be done\n\n- remove the extra_requires from pyproject.toml\n- There are probably some tests somewhere that check min dependencies consistency and that could be removed.\n- Also the tags in `sklearn/_min_dependencies.py` (`build`, `maintenance`, etc ...) could maybe be removed? This needs double-checking.\n\nPing @thomasjpfan in case you have some opinion on this off the top of your head!\n\n###",
+    "state": "closed",
+    "author": "lesteve",
+    "created_at": "2026-07-21T14:45:49Z",
+    "closed_at": "2026-07-27T09:33:46Z",
+    "labels": [
+      "RFC"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 5037113126,
+        "author": "thomasjpfan",
+        "author_association": "MEMBER",
+        "body": "Yes, lets remove them from extras. These days we have [dependency groups](https://packaging.python.org/en/latest/specifications/dependency-groups/), which are better for listing out dev dependencies:\n\n```bash\nuv pip install --group docs\n```",
+        "created_at": "2026-07-21T17:34:48Z"
+      },
+      {
+        "id": 5042591555,
+        "author": "lesteve",
+        "author_association": "MEMBER",
+        "body": "OK I think there is consensus to remove the `extra_requires` then. Investigating dependency groups could be done in a separate issue (full disclosure: I don't know much about them \ud83d\ude09).",
+        "created_at": "2026-07-22T06:22:27Z"
+      },
+      {
+        "id": 5044436706,
+        "author": "cakedev0",
+        "author_association": "CONTRIBUTOR",
+        "body": "\ud83d\udc4d  I'm looking into it.",
+        "created_at": "2026-07-22T09:56:52Z"
+      },
+      {
+        "id": 5045455043,
+        "author": "cakedev0",
+        "author_association": "CONTRIBUTOR",
+        "body": "Re dependency-groups: if we introduce them, we'll have to add dependency-groups entries to `check_pyproject_sections` in `test_min_dependencies_readme.py` so that it fails if someone edits one file and forgets the other (coupling between `pyproject.toml` and `_min_dependencies.py`).",
+        "created_at": "2026-07-22T11:54:06Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34311,
+    "title": "Explicitly set `array_api_dispatch=False` when computing reference values in array API tests",
+    "body": "> [!WARNING]\n> This issue is not yet ready for a PR. If you are interested in contributing to scikit-learn, please have a look at our [contributing guidelines](https://scikit-learn.org/dev/developers/contributing.html), and in particular the sections for [new contributors](https://scikit-learn.org/dev/developers/contributing.html#new-contributors) and the [\"Needs triage\"](https://scikit-learn.org/dev/developers/contributing.html#issues-tagged-needs-triage) label.\n\nWe should make the array API dispatch flag explicit in tests that compare dispatch Off and On.\n\nRight now we have tests that assume that the default setting of the flag is off when computing the reference values. They then enable the flag and run the alternative version.\n\nIn preparation for enabling array API dispatch by default it is useful to run our test suite with the flag set to On as default. This means we compute our reference values with the flag enabled. I'm not sure if this is a problem or will lead to false results in our tests. But it seems like a good idea to make the setting explicit in our tests.\n\nWe can do this with the settings context manager.\n\nWDYT?",
+    "state": "closed",
+    "author": "betatim",
+    "created_at": "2026-06-16T13:45:50Z",
+    "closed_at": "2026-07-22T16:33:10Z",
+    "labels": [
+      "Array API"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4720312621,
+        "author": "ogrisel",
+        "author_association": "MEMBER",
+        "body": "I agree we should do that.",
+        "created_at": "2026-06-16T15:12:01Z"
+      },
+      {
+        "id": 4779719069,
+        "author": "betatim",
+        "author_association": "MEMBER",
+        "body": "Reopening this as I think there are more instances where we don't explicitly set `array_api_dispatch=False` when computing reference values.",
+        "created_at": "2026-06-23T13:29:20Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34252,
+    "title": "RFC Automatically close pull requests linked to issues that are not ready for contributions",
+    "body": "Disclosure: I used LLM to proofread earlier drafts of this issue. All mistakes are due to me.\n\nTL;DR: This RFC discusses whether pull requests linked to issues not yet ready for contributions should be automatically closed to reduce repetitive reviewer workload.\n\n### The Situation\n\nIn the current review workflow, reviewers typically start with the following steps before inspecting the changes:\n\n1. Manually check whether the pull request is linked to an issue that is ready for contributions (e.g., not labelled \"Needs Triage\").\n2. If the linked issue is not yet ready for a pull request, reviewers need to explain this to the author and then close the pull request.\n\nWhile this process is straightforward and the decision-making is usually quick, it can become repetitive over time and contribute to reviewer fatigue, increasing the maintenance burden.\n\n#33521 reduces the time needed for step 1. However, explaining to contributors why a pull request is being closed because the linked issue is not ready (including wording and tone) is still time-consuming, and is often repeated in very similar forms. See https://github.com/scikit-learn/scikit-learn/pull/32951#pullrequestreview-3613580879, https://github.com/scikit-learn/scikit-learn/pull/33455#pullrequestreview-3894730435, and https://github.com/scikit-learn/scikit-learn/pull/33695#pullrequestreview-4060391909 for examples.\n\n### Proposed Solution\n\nDuring the 2026 sprint, we (@AnneBeyer, @StefanieSenger, and myself) discussed mitigating step 2 by introducing a bot that automatically closes pull requests linked to issues that are not yet ready for contributions. This builds on #33521, and is relatively straightforward from a technical standpoint.\n\nHowever, the proposed approach has at least two potential concerns:\n\n1. It may close pull requests that are intended as PoC for issues still under discussion, such as #34242.\n2. It may introduce security considerations (e.g., GitHub token handling).\n\nDespite these concerns, we believe this RFC could help address these issues and improve the overall review experience in the long run.\n",
+    "state": "closed",
+    "author": "virchan",
+    "created_at": "2026-06-11T14:49:55Z",
+    "closed_at": "2026-08-10T12:38:11Z",
+    "labels": [
+      "workflow"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4682225392,
+        "author": "AnneBeyer",
+        "author_association": "CONTRIBUTOR",
+        "body": "+1, but for a slightly more restricted version that limits this action to new contributors (at least in a first iteration), which will likely resolve the first concern.",
+        "created_at": "2026-06-11T15:31:08Z"
+      },
+      {
+        "id": 4688203130,
+        "author": "StefanieSenger",
+        "author_association": "MEMBER",
+        "body": "+1, I'd be happy about having this tool just as described. \n\n> It may close pull requests that are intended as PoC for issues still under discussion,\n\nA way around having our PoCs closed is to describe everything in the PR description and not use an issue, or not link to it (which new contributors are discouraged from doing).",
+        "created_at": "2026-06-12T06:50:19Z"
+      },
+      {
+        "id": 4688210671,
+        "author": "StefanieSenger",
+        "author_association": "MEMBER",
+        "body": "What do other people think, @scikit-learn/documentation-team, @scikit-learn/core-devs, @scikit-learn/contributor-experience-team?",
+        "created_at": "2026-06-12T06:51:28Z"
+      },
+      {
+        "id": 4688248577,
+        "author": "glemaitre",
+        "author_association": "MEMBER",
+        "body": "+1 for closing a bit more aggressively. I think that we can handle the PoC Pars with a label. I think the number of false positive closing will not be that harmful. ",
+        "created_at": "2026-06-12T06:57:03Z"
+      },
+      {
+        "id": 4688276524,
+        "author": "glemaitre",
+        "author_association": "MEMBER",
+        "body": "In regards with Anne's comment, could we get a quick statistics to see how many of those noisy PR are from new contributor and from returning contributor. \n\nIf we have vast majority (>80%), I would be inclined with Anne's proposal and it will even reduce false positive. ",
+        "created_at": "2026-06-12T07:00:02Z"
+      },
+      {
+        "id": 4688397629,
+        "author": "lucyleeow",
+        "author_association": "MEMBER",
+        "body": "+1 for bot closing - only concern is security - what permissions would the bot need to have?",
+        "created_at": "2026-06-12T07:11:58Z"
+      },
+      {
+        "id": 4688549448,
+        "author": "StefanieSenger",
+        "author_association": "MEMBER",
+        "body": "> what permissions would the bot need to have?\n\nProbably the `pull_request_target` one: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request_target\n\nThe security warning reads intimidating, though I cannot really evaluate this. In the past we have introduced a few of these.",
+        "created_at": "2026-06-12T07:24:41Z"
+      },
+      {
+        "id": 4688879955,
+        "author": "adrinjalali",
+        "author_association": "MEMBER",
+        "body": "yeah I like this, and also making sure we leave a scary sounding message as the bot closes them. It'd be also nice to keep track of how many of such PRs from each contributor are closed, so that we ban the ones who reach a certain number semi-automatically.",
+        "created_at": "2026-06-12T07:53:29Z"
+      },
+      {
+        "id": 4688916738,
+        "author": "GaelVaroquaux",
+        "author_association": "MEMBER",
+        "body": "> also making sure we leave a scary sounding message as the bot closes them.\n\nI would think the opposite: have a friendly message explaining the problem, so that we don't create adverse reactions from contributors with goodwill but incorrect understanding.\n\n",
+        "created_at": "2026-06-12T07:57:56Z"
+      },
+      {
+        "id": 4689107484,
+        "author": "ArturoAmorQ",
+        "author_association": "MEMBER",
+        "body": "I don't think it would be healthy for the project in the long term to discourage contributions with a \"scary\" message. That can also hurt how real humans perceive us, even before contributing.\n\nWhat if the issue's OP doesn't mark it as ready for contributions for whatever reason (partial consensus or simply by omission) and then a valuable contribution gets closed with absolute no attention from reviewers?\n\nBut what worries me the most is that bots may just learn that not linking the related issue at all leads to better chances for the PR?",
+        "created_at": "2026-06-12T08:26:02Z"
+      },
+      {
+        "id": 4689421346,
+        "author": "StefanieSenger",
+        "author_association": "MEMBER",
+        "body": "> a valuable contribution gets closed with absolute no attention from reviewers?\n\nThey can reopen their PR once the corresponding issue got triaged. Valuable contributions always have human beings behind that have skin in the game and will therefore care about this.\n\n> But what worries me the most is that bots may just learn that not linking the related issue at all leads to better chances for the PR?\n\nThen we close these as well.\n\n",
+        "created_at": "2026-06-12T09:09:36Z"
+      },
+      {
+        "id": 4689444687,
+        "author": "glemaitre",
+        "author_association": "MEMBER",
+        "body": "> But what worries me the most is that bots may just learn that not linking the related issue at all leads to better chances for the PR?\n\nFrom the proposal, I read:\n\n> to an issue that is ready for contributions (e.g., not labelled \"Needs Triage\").\n\nSo the important thing here is the \"Need Triage\" part which means that linking is not enough and the criterion is the issue needs to be ready.",
+        "created_at": "2026-06-12T09:12:14Z"
+      },
+      {
+        "id": 4690003753,
+        "author": "jeremiedbb",
+        "author_association": "MEMBER",
+        "body": "> +1, but for a slightly more restricted version that limits this action to new contributors (at least in a first iteration), which will likely resolve the first concern.\n\nI also think that it should only be configured for first-time contributors. These PRs are almost if not all the poor quality PRs, for which we don't want to waste too much time. For recurring contributors (including myself \ud83d\ude04 ), I'd really like to avoid disturbing the workflow. For them, we can assume that they're in the \"I know what I'm doing\" area.\n",
+        "created_at": "2026-06-12T10:06:59Z"
+      },
+      {
+        "id": 4690929858,
+        "author": "AnneBeyer",
+        "author_association": "CONTRIBUTOR",
+        "body": "If we agree on the first-time contributors, we could simply add this to the new [welcome comment workflow](https://github.com/scikit-learn/scikit-learn/pull/34211)",
+        "created_at": "2026-06-12T11:42:09Z"
+      },
+      {
+        "id": 4691679891,
+        "author": "virchan",
+        "author_association": "MEMBER",
+        "body": "> Could we get a quick statistics to see how many of those noisy PR are from new contributor and from returning contributor?\n\nHere is a list of PRs that I closed because the linked issue was not ready for a PR:\n\n  PR   | Linked issue labelled at PR close | New Contributor |\n-------|-----------------------------------|-----------------|\n#32896 |               No                  |       Yes       |\n#32951 |               Yes                 |       Yes       |\n#33056 |               No                  |       Yes       |\n#33109 |               Yes                 |       Yes       |\n#33601 |               No                  |       Yes       |\n#34033 |               No                  |       Yes       |\n#34034 |               No                  |       Yes       |\n\nSome observations:\n\n1. I closed 7 such PRs, so we might need more data.\n2. All of them were opened by first-time contributors.\n3. Not all linked issues had the \"not ready\" labels included in #33521. These are either:\n      * Participants in the linked issue had agreed that there was a problem, but were still gathering information or discussing a potential fix when the PR was opened.\n      * Issues labelled \"help wanted\" that were still awaiting consensus.\n3. If the linked issue was not labelled, I read through the entire discussion to understand its current status before deciding to close the PR.\n4. In most cases, the PR author did not follow up after the PR was closed. The only exception was #32951, where the author opened #32968 after consensus had been reached in the linked issue. (And it was eventually merged!)\n\nTherefore, restricting the bot to first-time contributors seems reasonably safe. We can then monitor the situation and decide if we want to extend it.",
+        "created_at": "2026-06-12T13:25:52Z"
+      },
+      {
+        "id": 4691931708,
+        "author": "jeremiedbb",
+        "author_association": "MEMBER",
+        "body": "> It may close pull requests that are intended as PoC for issues still under discussion, such as https://github.com/scikit-learn/scikit-learn/pull/34242.\n\nThat's a good point, sometimes it's desirable to have the PR before taking a decision on the issue because it helps take that decision.",
+        "created_at": "2026-06-12T13:56:20Z"
+      },
+      {
+        "id": 4698114920,
+        "author": "DeaMariaLeon",
+        "author_association": "MEMBER",
+        "body": "Thank you for working on this @virchan, @AnneBeyer, and @StefanieSenger! \n\n+1:  the whole note should be as polite as possible. \n____\n\n> a valuable contribution gets closed with absolute no attention from reviewers?\n\n> They can reopen their PR once the corresponding issue got triaged. Valuable contributions always have human beings behind that have skin in the game and will therefore care about this.\n\nCould we add a note explicitly stating that they can reopen the PR if they address the requested feedback (e.g., if x, y, and z are done)? Someone who doesn't use scikit-learn, but wants to contribute anyway, may not have \"skin in the game\". Having their PR closed could discourage them from ever trying again. \n\n------\nAs context: I started contributing through \"good first issues\", and there wasn't anything specific that I wanted to fix.  \n\nIt's a bit sad to read in other discussions that those kinds of contributions are not considered valuable. Or that **truly** \"valuable contributors\" are expected to come with specific things they want to fix. \n\nI understand that AI-generated contributions have made things more difficult for maintainers, but what about new contributors? it's becoming harder for them as well. They may get lost in the sea of noise, or feel like they're knocking on closed doors. \n\nI may sound touchy-feely, but let's try to maintain the welcoming and inclusive image that this project has built over the years. \n\n",
+        "created_at": "2026-06-13T09:21:56Z"
+      },
+      {
+        "id": 4698208111,
+        "author": "lucyleeow",
+        "author_association": "MEMBER",
+        "body": "I understand your reservations @DeaMariaLeon and I used R more when I started contributing too.\n\nWe have tried to be fairly clear, e.g. bot comment, pleading to not open a PR to issues that have not been triaged yet. Why would a person who genuinely wants to contribute ignore such a request? Since it comments in the issue, even the small group of people that do not use scikit learn but are genuinely keen to contribute should see it. Further, we've tried to give advice to new contributors in the docs, e.g. starting by reviewing PRs to gain more of an understanding of the project and norm. Non code contributions are still valuable.\n\n(Edit: I agree the comment should be nice and encouraging, but I don't think closing this type of PR will happen to genuine contributors)\n\n---\n\nWith regard to restricting to first time contributors, I know opinions will vary on this but some maintainers have become more cautious about merging small typo fix PRs to take care about who gains the contributor status. Just wanted to raise the notion",
+        "created_at": "2026-06-13T10:06:26Z"
+      },
+      {
+        "id": 4698279598,
+        "author": "DeaMariaLeon",
+        "author_association": "MEMBER",
+        "body": "> Why would a person who genuinely wants to contribute ignore such a request? \n\nGood point. :) ",
+        "created_at": "2026-06-13T10:40:39Z"
+      },
+      {
+        "id": 4698587391,
+        "author": "AnneBeyer",
+        "author_association": "CONTRIBUTOR",
+        "body": "Regarding the message, I would follow @virchan's answer template and keep it rather neutral. We can still start with a \"thank you\" and basically copy the text from the warning note into the closing comment, that contains enough pointers for what they could do instead (if they bother to click on the links). ",
+        "created_at": "2026-06-13T12:59:18Z"
+      },
+      {
+        "id": 4705978766,
+        "author": "StefanieSenger",
+        "author_association": "MEMBER",
+        "body": "> what about new contributors? it's becoming harder for them as well. They may get lost in the sea of noise, or feel like they're knocking on closed doors.\n\nYour point is very appreciated and important.\n\nMy hope is that being stricter enforcing rules of communication and netiquettes will help us focus more on the new contributors that are genuine. I know how much resource I have available for triage and reviewing work and if I spend 90% of it evaluating PRs that aren't based on conscious decisions (but rather on an AI agent's best guess), comparing it with the issue and check if there are other PRs doing the same, then the new contributors that actually put in thought and effort are invisible to me.",
+        "created_at": "2026-06-15T08:25:26Z"
+      },
+      {
+        "id": 4706353683,
+        "author": "betatim",
+        "author_association": "MEMBER",
+        "body": "I like the suggestion. I think the message from the bot needs to be polite and state facts. No opinion/value judgement. It can conclude with \"sometimes this automation gets it wrong, for example for requested proof-of-concepts. Apologies if this happened to you\" - maybe we need to add that people should post in the original issue that they made a POC PR?? But maybe people would figure this out by themselves??\n\nI think limiting the bot to new contributors is the way to go. It will reduce a lot of the workload and reduce the false positives.\n\nCan we set it up as a `pull_request` workflow instead of the more powerful `pull_request_target`? The latter has many warnings and is a popular way for attacks, so avoiding it would be great as it reduces the number of ways we can make a mistake and then get hacked.",
+        "created_at": "2026-06-15T09:14:58Z"
+      },
+      {
+        "id": 4750417970,
+        "author": "lucyleeow",
+        "author_association": "MEMBER",
+        "body": "Fyi `pull_request_target` is being made safer\n\nhttps://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout/",
+        "created_at": "2026-06-19T09:44:11Z"
+      },
+      {
+        "id": 4760807542,
+        "author": "shipitdev",
+        "author_association": "CONTRIBUTOR",
+        "body": "+1 to this proposal, and I strongly agree with @AnneBeyer's suggestion to restrict it to new contributors initially. That solves the concern about blocking PoC PRs from regular contributors \n\nComing from the contributor side, I wanted to mention that this would be extremely helpful for issue authors. As stated, Right now there is a race condition where automated PRs are being opened the second an issue goes live.\nFor example, I recently opened a minor doc issue (#34315). Before the Needs Triage label could even be evaluated, a premature PR was opened against it, where i saw @virchan step in and mark it as SPAM / purely AI generated content.\n\nHaving an auto-close mechanism that immediately leaves a polite 'Please wait for triage' message would be a huge win. It saves the maintainers' time, stops the race condition, and keeps the issue thread clean so actual triage can happen.",
+        "created_at": "2026-06-21T03:38:04Z"
+      },
+      {
+        "id": 4885681672,
+        "author": "webdevpraveen",
+        "author_association": "NONE",
+        "body": "Really support this idea! it saves maintainers from the overhead of manually reviewing \"drive-by\" PRs that lack context.\n\njust a thought on the implementation: instead of immediately closing the PR, maybe the bot could apply a `needs-issue` label and leave an automated comment giving the author a 24-48 hour window to link a valid issue? \n\nif they don't, it auto-closes. this might feel a bit more welcoming to first-time contributors while still keeping the queue clean.",
+        "created_at": "2026-07-05T10:28:05Z"
+      },
+      {
+        "id": 4976067746,
+        "author": "virchan",
+        "author_association": "MEMBER",
+        "body": "Thanks, everyone, for your input!\n\nIt looks like there is consensus around the proposed solution, so I'll remove the RFC label and start working on it.",
+        "created_at": "2026-07-15T01:50:16Z"
+      },
+      {
+        "id": 5010461224,
+        "author": "StefanieSenger",
+        "author_association": "MEMBER",
+        "body": "Removing the sprint label so people don't confuse it with the `EuroPython` sprint label.",
+        "created_at": "2026-07-18T07:43:19Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34639,
+    "title": "CI PyGitHub DeprecationWarning in `maint_tools/update_tracking_issue.py`",
+    "body": "Noticed this in one CI build log:\n```\n/home/runner/work/scikit-learn/scikit-learn/maint_tools/update_tracking_issue.py:68: DeprecationWarning: Argument login_or_token is deprecated, please use auth=github.Auth.Token(...) instead   gh = Github(args.bot_github_token)\n```\n\nOther scripts using PyGithub uses it the right way:\n```py\ngh = Github(auth=Auth.Token(token))\n```",
+    "state": "closed",
+    "author": "lesteve",
+    "created_at": "2026-08-03T08:21:12Z",
+    "closed_at": "2026-08-24T03:26:37Z",
+    "labels": [
+      "Build / CI"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 5365748741,
+        "author": "lesteve",
+        "author_association": "MEMBER",
+        "body": "@Brucee-ee this would be a good first issue for you if you feel like it \ud83d\ude4f!",
+        "created_at": "2026-08-21T05:51:51Z"
+      },
+      {
+        "id": 5369863885,
+        "author": "Brucee-ee",
+        "author_association": "CONTRIBUTOR",
+        "body": "Hi @lesteve , I'd like to take this one on if it's still available. Will look at update_tracking_issue.py and switch it over to the Auth.Token pattern like the other scripts. Thanks!",
+        "created_at": "2026-08-21T12:35:00Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34844,
+    "title": "\u26a0\ufe0f CI failed on Wheel builder (last failure: Aug 30, 2026) \u26a0\ufe0f",
+    "body": "> [!WARNING]\n> This issue is not yet ready for a PR. If you are interested in contributing to scikit-learn, please have a look at our [contributing guidelines](https://scikit-learn.org/dev/developers/contributing.html), and in particular the sections for [new contributors](https://scikit-learn.org/dev/developers/contributing.html#new-contributors) and the [\"Needs triage\"](https://scikit-learn.org/dev/developers/contributing.html#issues-tagged-needs-triage) label.\n\n**CI failed on [Wheel builder](https://github.com/scikit-learn/scikit-learn/actions/runs/33290987993)** (Aug 30, 2026)\n",
+    "state": "closed",
+    "author": "scikit-learn-bot",
+    "created_at": "2026-08-30T04:36:38Z",
+    "closed_at": "2026-08-31T11:33:13Z",
+    "labels": [
+      "Needs Triage"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 5473776110,
+        "author": "scikit-learn-bot",
+        "author_association": "CONTRIBUTOR",
+        "body": "## CI is no longer failing! \u2705\n\n[Successful run](https://github.com/scikit-learn/scikit-learn/actions/runs/33354986256) on Aug 31, 2026",
+        "created_at": "2026-08-31T04:35:36Z"
+      },
+      {
+        "id": 5477698149,
+        "author": "StefanieSenger",
+        "author_association": "MEMBER",
+        "body": "This failure was in fact not a failure to build the wheels but a failure to store the artifacts for `cp311-macosx_x86_64` and for `cp313-macosx_arm64` with:\n\n`Failed to CreateArtifact: Unable to make request: ENOTFOUND`\n\nI haven't found any similar issue and [ENOTFOUND seems to be a lookup problem](https://www.w3tutorials.net/blog/error-getaddrinfo-enotfound-in-nodejs-for-get-call/).\n\nI conclude this to be a one-off problem and will therefore close the issue.",
+        "created_at": "2026-08-31T11:33:13Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34459,
+    "title": "DOC: clarify n_iter_ can be 0 when warm_start=True in LogisticRegression",
+    "body": "> [!WARNING]\n> This issue is not yet ready for a PR. If you are interested in contributing to scikit-learn, please have a look at our [contributing guidelines](https://scikit-learn.org/dev/developers/contributing.html), and in particular the sections for [new contributors](https://scikit-learn.org/dev/developers/contributing.html#new-contributors) and the [\"Needs triage\"](https://scikit-learn.org/dev/developers/contributing.html#issues-tagged-needs-triage) label.\n\n### Describe the issue linked to the documentation\n\n### Describe the issue\n\nWhen using `LogisticRegression` with `warm_start=True`, the `n_iter_` \nattribute reports `[0]` on subsequent fits if the model has already \nconverged:\n\n```python\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.datasets import make_classification\n\nX, y = make_classification(n_samples=100, n_features=4, random_state=0)\n\nclf = LogisticRegression(max_iter=1000, warm_start=True, random_state=0)\nclf.fit(X, y)\nprint(clf.n_iter_)  # [7]\nclf.fit(X, y)\nprint(clf.n_iter_)  # [0] \u2014 unexpected for users\n```\n\nThis is technically correct \u2014 lbfgs needs 0 iterations when starting \nfrom an already-optimal point \u2014 but it is surprising and undocumented.\n\n### Suggested fix\n\nAdd a note to the `n_iter_` attribute docstring mentioning that \n`n_iter_` can be 0 when `warm_start=True` and the model has already \nconverged from a previous fit.\n\n### Suggest a potential alternative/fix\n\n_No response_",
+    "state": "closed",
+    "author": "vashita-pandey",
+    "created_at": "2026-07-11T09:17:21Z",
+    "closed_at": "2026-07-15T13:52:44Z",
+    "labels": [
+      "Documentation",
+      "Needs Triage"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4956439436,
+        "author": "payal101",
+        "author_association": "NONE",
+        "body": "can you assign this? to me",
+        "created_at": "2026-07-13T09:25:29Z"
+      },
+      {
+        "id": 4956819434,
+        "author": "vashita-pandey",
+        "author_association": "CONTRIBUTOR",
+        "body": "@payal101 It's already being worked at #34460 ",
+        "created_at": "2026-07-13T10:08:40Z"
+      },
+      {
+        "id": 4981361806,
+        "author": "StefanieSenger",
+        "author_association": "MEMBER",
+        "body": "Hi @vashita-pandey, \nthanks for your issue. I will close it as not planned, since I don't think it is very so surprising. These AI-generated issues usually don't hint to a real pain users may have.",
+        "created_at": "2026-07-15T13:52:44Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34304,
+    "title": "Speed up histogram bin creation in `sklearn.ensemble._hist_gradient_boosting.binning`",
+    "body": "> [!WARNING]\n> This issue is not yet ready for a PR. If you are interested in contributing to scikit-learn, please have a look at our [contributing guidelines](https://scikit-learn.org/dev/developers/contributing.html), and in particular the sections for [new contributors](https://scikit-learn.org/dev/developers/contributing.html#new-contributors) and the [\"Needs triage\"](https://scikit-learn.org/dev/developers/contributing.html#issues-tagged-needs-triage) label.\n\n### Describe the workflow you want to enable\n\nBin creation is a surprisingly large chunk of at least some of the histogram gradient boosting benchmarks; a big chunk of that is `np.argsort()`. I am fairly certain it can be faster, e.g. full sorting is probably unnecessary in many cases.\n\n### Describe your proposed solution\n\nCurrent ideas (perhaps all wrong!) that I expect to try:\n \n* A quick experiment suggests `np.argpartition` is way faster than `np.argsort` and plausibly viable in some common cases. I _think_ even that may be overkill.\n* It would not surprise me if the unique values calculation is unnecessary on the full data, and running it just on the bins might suffice.\n* Maybe NumPy's own histogram calculation might work sometimes?\n\nEtc. Still TBD if any of this is actually correct.\n\n### Describe alternatives you've considered, if relevant\n\n_No response_\n\n### Additional context\n\nI will try to implement some of these, and if I succeed then submit a PR.",
+    "state": "closed",
+    "author": "itamarst",
+    "created_at": "2026-06-15T20:02:45Z",
+    "closed_at": "2026-06-24T19:28:43Z",
+    "labels": [
+      "New Feature",
+      "Needs Decision"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4712845828,
+        "author": "itamarst",
+        "author_association": "CONTRIBUTOR",
+        "body": "What I've learned:\n\n* The benchmark that said `argsort()` was significant was wrong. Not sure how I managed to get that result...\n* `argpartition` made things worse.\n* Still, I did manage to speed up `argsort()` slightly, so maybe 6% speed up on one benchmark after #34194 is merged. So will submit a PR once that is merged, with any other quick wins I see.",
+        "created_at": "2026-06-15T22:05:20Z"
+      },
+      {
+        "id": 4716555563,
+        "author": "martian7777",
+        "author_association": "NONE",
+        "body": "I'm working on this!",
+        "created_at": "2026-06-16T08:36:19Z"
+      },
+      {
+        "id": 4753244962,
+        "author": "ogrisel",
+        "author_association": "MEMBER",
+        "body": "@cakedev0 could you share your own analysis of problems related to this binning step here?",
+        "created_at": "2026-06-19T16:21:55Z"
+      },
+      {
+        "id": 4753891873,
+        "author": "itamarst",
+        "author_association": "CONTRIBUTOR",
+        "body": "Here's what I came up with, BTW, before timeboxing this and moving on: https://github.com/scikit-learn/scikit-learn/compare/main...itamarst:scikit-learn:34304-faster-bin-creation\n\nNot a very exciting optimization, but as mentioned it is definitely faster; the issue is that in most benchmarks this isn't a big % of full time so it's not super impactful. So it's probably one of those cases where you do a bunch of small optimizations and it adds up.",
+        "created_at": "2026-06-19T18:26:24Z"
+      },
+      {
+        "id": 4754234011,
+        "author": "cakedev0",
+        "author_association": "CONTRIBUTOR",
+        "body": "The changes proposed here https://github.com/scikit-learn/scikit-learn/compare/main...itamarst:scikit-learn:34304-faster-bin-creation are contained in my PR #34248 (I'd be happy to get your review @itamarst, you seem quite knowledgeable on this kind of subject \ud83d\ude01 )\n\nSo we reached the same conclusion with @itamarst \ud83d\ude04 \n\nNote that for a datasets of 100k samples and with 1 thread, this change still brings a ~2-3x speed-up in the binning process. But this speed-up becomes quickly almost invisible when the number of threads increases (a bit like for #34194).",
+        "created_at": "2026-06-19T19:33:43Z"
+      },
+      {
+        "id": 4755898929,
+        "author": "itamarst",
+        "author_association": "CONTRIBUTOR",
+        "body": "I wonder if memory bandwidth becomes an issue, certainly seen some places where it seems like it would be. (And I wonder how one would get past that... compression?)",
+        "created_at": "2026-06-20T01:29:26Z"
+      },
+      {
+        "id": 4757394876,
+        "author": "cakedev0",
+        "author_association": "CONTRIBUTOR",
+        "body": "> And I wonder how one would get past that... compression?\n\nI'd say we just want to try to write good memory access patterns as much as possible. Once such code becomes memory bound, I think we can considered it's optimized enough ^^",
+        "created_at": "2026-06-20T10:40:41Z"
+      }
+    ]
+  },
+  {
+    "repo": "scikit-learn/scikit-learn",
+    "number": 34170,
+    "title": "RidgeClassifier binary coef_ shape does not match documented shape",
+    "body": "### Describe the issue linked to the documentation\n\n### Description\n\nOn binary classification, `RidgeClassifier.coef_` and `RidgeClassifierCV.coef_` return a 1D array of shape `(n_features,)`, but the class documentation says `coef_` should have shape `(1, n_features)` for binary problems:\n\n> `coef_ : ndarray of shape (1, n_features) or (n_classes, n_features)`\n\nThis behavior actually differs from other linear classifiers.\n\n### Code to Reproduce\n\n```python\nimport sklearn\nfrom sklearn.datasets import make_classification\nfrom sklearn.linear_model import LogisticRegression, RidgeClassifier, RidgeClassifierCV\n\nprint(\"scikit-learn:\", sklearn.__version__)\n\nX, y = make_classification(\n    n_samples=40,\n    n_features=20,\n    n_informative=10,\n    n_redundant=0,\n    random_state=0,\n)\n\nfor estimator in [\n    LogisticRegression(max_iter=1000),\n    RidgeClassifier(),\n    RidgeClassifierCV(),\n]:\n    fitted = estimator.fit(X, y)\n    print(f\"{estimator.__class__.__name__}.coef_.shape = {fitted.coef_.shape}\")\n```\n\n### Output\n```python\nLogisticRegression.coef_.shape = (1, 20)\nRidgeClassifier.coef_.shape = (20,)\nRidgeClassifierCV.coef_.shape = (20,)\n```\n\n### Suggest a potential alternative/fix\n\n_No response_",
+    "state": "closed",
+    "author": "JhonatanFelix",
+    "created_at": "2026-06-01T16:05:45Z",
+    "closed_at": "2026-08-07T11:42:56Z",
+    "labels": [
+      "Documentation"
+    ],
+    "linked_prs": [],
+    "comments": [
+      {
+        "id": 4611121476,
+        "author": "heyyveer",
+        "author_association": "CONTRIBUTOR",
+        "body": "I can reproduce this behavior on the current version. Since the issue is marked \"Needs Triage\", should the documentation be updated to match the current behavior, or should the implementation be changed to return shape `(1, n_features)` for binary classification?\n",
+        "created_at": "2026-06-03T09:55:31Z"
+      },
+      {
+        "id": 4637362573,
+        "author": "veenus-rajpoot",
+        "author_association": "NONE",
+        "body": "Hi, I'd like to work on this issue if it's available.",
+        "created_at": "2026-06-06T04:23:59Z"
+      },
+      {
+        "id": 4638032721,
+        "author": "StefanieSenger",
+        "author_association": "MEMBER",
+        "body": "Thanks for reporting, @JhonatanFelix.\n\nI would tend to fix the docs over the code, so we don't break so many people's implementations, and it is not a real bug. Even though \n> This behavior actually differs from other linear classifiers.\n\nWhat do you think, @lorentzenchr?",
+        "created_at": "2026-06-06T08:56:43Z"
+      },
+      {
+        "id": 5141561417,
+        "author": "betatim",
+        "author_association": "MEMBER",
+        "body": "I'd lean towards fixing the code, to remove the inconsistency. But I think before we do that we need to understand the history of this code, maybe it was done like this on purpose. Or maybe a recent (last year or so) change accidentally changed the shape.\n\nSo before doing work we need someone to perform the research and get input from people who have worked on these estimators.",
+        "created_at": "2026-07-31T09:46:05Z"
+      },
+      {
+        "id": 5143889375,
+        "author": "lorentzenchr",
+        "author_association": "MEMBER",
+        "body": "If those 2 classes only (ever) support binary classification, we could also just fix the docstring.\nI am fine either way.",
+        "created_at": "2026-07-31T14:20:15Z"
+      },
+      {
+        "id": 5144336747,
+        "author": "betatim",
+        "author_association": "MEMBER",
+        "body": "@veenus-rajpoot or @heyyveer would one of you like to do the work to help move this issue forward and then later submit a PR?",
+        "created_at": "2026-07-31T15:04:51Z"
+      },
+      {
+        "id": 5145711549,
+        "author": "heyyveer",
+        "author_association": "CONTRIBUTOR",
+        "body": "Thanks! I'd be happy to investigate the history of this behavior and report back with my findings before proposing a fix.\n",
+        "created_at": "2026-07-31T17:28:28Z"
+      },
+      {
+        "id": 5150193224,
+        "author": "heyyveer",
+        "author_association": "CONTRIBUTOR",
+        "body": "I investigated the history of this behavior.\n\nIt looks like the current behavior is intentional. In PR #19746 (merged in October 2024), `Ridge`-based estimators were updated to return a 1D `coef_` whenever there is a single target. The same change also explicitly flattens `RidgeClassifierCV.coef_` for binary classification.\n\nI also noticed that `test_linear_model_classifier_coef_shape` currently marks `RidgeClassifier` and `RidgeClassifierCV` with `xfail`, noting that they do not follow the `coef_` shape contract.\n\nSo the current implementation, tests, and documentation are not fully aligned:\n\n* implementation: returns `(n_features,)`\n* tests: acknowledge this inconsistency with `xfail`\n* documentation: still documents `(1, n_features)` for binary classification\n\nThis suggests the mismatch may have been introduced when #19746 changed the implementation without updating the corresponding docstrings.\n",
+        "created_at": "2026-08-01T06:29:56Z"
+      },
+      {
+        "id": 5189312643,
+        "author": "betatim",
+        "author_association": "MEMBER",
+        "body": "Thanks for doing the sleuthing. From reading through https://github.com/scikit-learn/scikit-learn/pull/19746 it looks like the change was made on purpose, though even back then there seems to have been some back and forth. I couldn't spot an update to the docs in that PR.\n\nMy preference would be to make the documentation match the behaviour of the code.",
+        "created_at": "2026-08-05T08:14:59Z"
+      },
+      {
+        "id": 5193162796,
+        "author": "heyyveer",
+        "author_association": "CONTRIBUTOR",
+        "body": "> Thanks for doing the sleuthing. From reading through https://github.com/scikit-learn/scikit-learn/pull/19746 it looks like the change was made on purpose, though even back then there seems to have been some back and forth. I couldn't spot an update to the docs in that PR.\n> \n> My preference would be to make the documentation match the behaviour of the code\n\nThanks for confirming! I'll update the documentation so it matches the current behavior of the implementation and open a PR for review.\n",
+        "created_at": "2026-08-05T14:36:34Z"
+      },
+      {
+        "id": 5195400022,
+        "author": "heyyveer",
+        "author_association": "CONTRIBUTOR",
+        "body": "Thanks for the guidance! I've opened a PR updating the documentation to match the current implementation as discussed.\nPR: #34657",
+        "created_at": "2026-08-05T17:59:09Z"
+      },
+      {
+        "id": 5217276820,
+        "author": "lorentzenchr",
+        "author_association": "MEMBER",
+        "body": "Thanks for improving the documentation.",
+        "created_at": "2026-08-07T12:52:31Z"
+      }
+    ]
+  }
+]
