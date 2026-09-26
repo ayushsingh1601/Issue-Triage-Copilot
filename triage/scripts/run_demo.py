@@ -12,6 +12,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from triage.guardrails.input_guard import InputGuard
+from triage.guardrails.schema import format_decision
 from triage.logging import silence_libraries
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
@@ -135,7 +136,10 @@ def main() -> None:
         print("QUERY REJECTED — no decision produced.")
     print()
     print("FINAL DECISION:")
-    print(result["decision"].model_dump_json(indent=2) if result["decision"] else "none")
+    print(format_decision(result["decision"]))
+    if result["decision"]:
+        print("\nFINAL DECISION (JSON):")
+        print(result["decision"].model_dump_json(indent=2))
     if actual:
         print()
         print("ACTUAL RESOLUTION:")

@@ -6,7 +6,7 @@ from triage.agents.historical import HistoricalAgent
 from triage.agents.process import ProcessAgent
 from triage.guardrails.citation_verify import invalid_citations, verify_decision
 from triage.guardrails.confidence import needs_human_review
-from triage.guardrails.schema import TriageDecision
+from triage.guardrails.schema import TriageDecision, format_decision
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
 from triage.memory.store import EvidenceStore
@@ -129,6 +129,21 @@ def orchestrator_json() -> str:
             "citations": ["x/y#1", "FAKE#999", "CONTRIBUTING.md#top#0"],
         }
     )
+
+
+def test_format_decision_renders_readable_summary():
+    decision = TriageDecision.model_validate_json(orchestrator_json())
+    rendered = format_decision(decision)
+    assert "Suggested labels: bug, DataFrame" in rendered
+    assert "Triage route: bug: reproduce" in rendered
+    assert "  - Reproduce with a minimal example" in rendered
+    assert "Affected modules: pandas/core/frame.py" in rendered
+    assert "x/y#1: Bug 1 (same crash)" in rendered
+    assert "Citations: x/y#1" in rendered
+
+
+def test_format_decision_none():
+    assert format_decision(None) == "(no decision produced)"
 
 
 def test_verify_decision_drops_unknown_sources():
