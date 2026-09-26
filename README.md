@@ -389,25 +389,20 @@ recall@10 from 0.0 → 0.33 and precision@10 from 0.0 → 0.2 vs base.
   the whole suite runs offline and deterministically.
 - **Binary verdicts beat rating scales for auto-eval.** Per-metric, separate LLM calls
   returning `yes`/`no` are simpler to aggregate and more reliable than 1-5 scores.
-- **Trace locally before adopting a platform.** A lightweight `Tracer` for per-node,
-  per-LLM, per-tool latency answered the questions we had; a hosted backend (Langfuse) is
-  only enabled behind env vars when deeper analysis is needed.
-- **Hosted tracing only works if callbacks reach the inner calls.** Attaching a LangChain
-  callback at `graph.ainvoke(...)` is not enough — every nested `model.ainvoke` /
-  `tool.ainvoke` must thread the config, and graph nodes must be config-aware. Verify with a
-  hermetic `RecordingCallbackHandler` test before relying on the live UI.
-- **Hermetic tests can pass while the real integration fails.** The callback-threading test
-  was green, but the first real Langfuse run exposed a wrong `trace_context` argument and a
-  quoted `.env` host. Test integrations against real backends (even briefly) after mocks.
-- **Library type-annotation contracts matter.** LangGraph inspects the node `config`
-  annotation literally; ruff's `UP045` rewrote `Optional[X]` back to `X | None`. Annotate
-  `config: RunnableConfig` and both stay quiet.
-- **Notebooks live inside an event loop.** `asyncio.run()` in a cell raises; expose async
-  APIs (`run_comparison_async`) and let cells use top-level `await` instead of reaching for
-  `nest_asyncio`.
-- **`.env` values may carry stray quotes.** Pasting `KEY="value"` into `.env` works in a
-  shell (which strips quotes) but breaks Python loaders that split on `=`. Strip matching
-  quotes in the loader.
+- **Trace locally first; adopt a platform behind env vars.** A lightweight `Tracer` for
+  per-node, per-LLM, per-tool latency answered the questions we had; a hosted backend
+  (Langfuse) is enabled only when configured, so the core project needs no accounts or
+  servers.
+- **Observability is a first-class design concern.** Hosted tracing only shows agent calls
+  if the trace config is threaded through every nested `model.ainvoke` / `tool.ainvoke` and
+  nodes are config-aware — so capture is part of the graph's contract, not an add-on, and is
+  proven with a hermetic callback test.
+- **Design async boundaries up front.** Components that must run inside an event loop
+  (notebooks, hosted runtimes) need explicitly exposed async APIs
+  (`run_comparison_async`) instead of sync wrappers that spawn their own loop.
+- **Mocked tests and real integrations answer different questions.** Hermetic tests prove
+  wiring; a real-key smoke run validates assumptions (auth, endpoints, version contracts).
+  Schedule both rather than trusting either alone.
 - **Make the final output readable.** A structured JSON decision is auditable, but humans
   (and demos) benefit from a formatted summary (`format_decision`) alongside it.
 - **Eval hygiene starts at ingestion.** Carving out a fixed-seed held-out set at fetch time —
