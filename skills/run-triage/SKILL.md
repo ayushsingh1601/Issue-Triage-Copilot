@@ -31,12 +31,14 @@ python triage/scripts/run_demo.py --text "Title\n\nbody of the issue"
 
 ## Output
 
-Guard result, classification, the final `TriageDecision` JSON (labels, triage route, next
-steps, affected modules, similar issues + citations), `needs_human`, and — for held-out
-issues — the actual labels / linked PRs / closing comment.
+Guard result, classification, the final decision as a **readable summary plus the JSON**
+(`format_decision`: labels, triage route, next steps, affected modules, similar issues +
+citations), `needs_human`, and — for held-out issues — the actual labels / linked PRs /
+closing comment.
 
 ## Notes
 
 - If the decision has no `similar_issues`/`citations`, the corpus is likely too small for
   the retrieval step to surface relevant evidence.
+- Add `--trace <path>` to capture per-stage latency (see the `trace-runs` skill).
 - With no `--text` and no `--held-out-index`, the script exits with a usage error.

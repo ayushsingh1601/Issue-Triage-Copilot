@@ -37,6 +37,8 @@ python triage/scripts/run_evals.py --sweep-retrieval --held-out-limit N
 
 - Each held-out issue triggers several LLM calls; keep `--held-out-limit` small for a quick
   sanity check.
+- The runner also exposes async APIs (`run_comparison_async`, `evaluate_system_async`) for
+  use inside the notebook, which runs in an event loop.
 - The multi-agent path runs in a single event loop; a per-issue `asyncio.run` loop would
   break with reused async clients (fixed in git history).
 

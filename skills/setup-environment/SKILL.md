@@ -23,7 +23,8 @@ GITHUB_TOKEN=...
 OPENAI_API_KEY=...
 ```
 
-The scripts `triage/scripts/fetch.py` and `triage/scripts/run_demo.py` load `.env`
+Values may be wrapped in matching quotes (`KEY="value"`); the project's `.env` loader strips
+them. The scripts `triage/scripts/fetch.py` and `triage/scripts/run_demo.py` load `.env`
 automatically; `build_corpus.py` and `run_evals.py` read from the environment, so export
 the vars (e.g. `set -a; . ./.env; set +a`) when running those.
 
@@ -31,7 +32,8 @@ the vars (e.g. `set -a; . ./.env; set +a`) when running those.
 
 - `OPENAI_MAIN_MODEL` (default `gpt-4o-mini`)
 - `OPENAI_FAST_MODEL` (default `gpt-4o-mini`)
-- `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` to enable Langfuse tracing
+- `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` to enable Langfuse
+  tracing (see the `trace-runs` skill)
 
 ## Verify
 

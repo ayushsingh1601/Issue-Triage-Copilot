@@ -153,7 +153,9 @@ triage/
   tests/      per-module pytest files
   tracing.py  local latency tracer (per-node / per-LLM / per-tool)
   observability.py  optional Langfuse wiring (free tier)
+  logging.py  silence noisy third-party loggers in CLIs
 notebooks/    demo.ipynb (run the full pipeline cell by cell)
+skills/       opencode skills (registered via opencode.json) to run project workflows
 ```
 
 ## How to run
@@ -167,7 +169,8 @@ pip install -e ".[dev]"        # add ",trace" to also install Langfuse (free tie
 GITHUB_TOKEN=...  OPENAI_API_KEY=...
 ```
 
-Optional LLM model overrides: `OPENAI_MAIN_MODEL` (default `gpt-4o-mini`) and
+Values in `.env` may be wrapped in matching quotes (e.g. `KEY="value"`) — the loader strips
+them. Optional LLM model overrides: `OPENAI_MAIN_MODEL` (default `gpt-4o-mini`) and
 `OPENAI_FAST_MODEL` (default `gpt-4o-mini`).
 
 ### 1. Fetch the dataset
@@ -215,8 +218,9 @@ python triage/scripts/run_demo.py --text "Title\n\nbody of a brand-new issue"
 
 The input guard runs first (prompt-injection rules + relevance gate; `--no-guard` to
 disable), and retrieval uses the query rewriter + LLM reranker (on by default;
-`--no-rewrite` / `--no-rerank` to disable). Prints the guard result, final decision JSON,
-the confidence gate result, and (for held-out issues) the actual resolution for comparison.
+`--no-rewrite` / `--no-rerank` to disable). Prints the guard result, classification, the
+final decision as a **readable summary plus the JSON** (`format_decision`), the confidence
+gate result, and (for held-out issues) the actual resolution for comparison.
 
 ### 4. Run the evaluation
 
@@ -225,6 +229,9 @@ python triage/scripts/run_evals.py                 # vanilla vs multi-agent tabl
 python triage/scripts/run_evals.py --sweep         # doc-chunking sweep (recall + precision@10)
 python triage/scripts/run_evals.py --sweep-retrieval   # base / rewrite / rerank / rewrite+rerank
 ```
+
+The runner exposes both sync (`run_comparison`, `evaluate_system`) and async
+(`run_comparison_async`, `evaluate_system_async`) APIs; the notebook uses the async forms.
 
 ### 5. Debug a run with tracing
 
@@ -252,12 +259,28 @@ call is timed), and the demo/notebook flow.
 ### 6. Run everything from a notebook
 
 `notebooks/demo.ipynb` steps through the whole pipeline in cells: dataset (fetch or reuse)
-→ build indexes → triage a held-out issue → inspect the trace → vanilla-vs-multi
-comparison. Open it with `jupyter notebook` or VS Code and run cells top to bottom. The
-graph-invoke cells pass `graph_config()`, so Langfuse traces (if configured) are captured
-from the notebook too. The build-indexes cell clears the collections first, so re-running it
-is safe; after fetching new issues, prefer the incremental CLI refresh
-(`build_corpus.py --refresh`).
+→ build indexes → triage a held-out issue (readable decision + JSON) → inspect the trace →
+vanilla-vs-multi comparison. Open it with `jupyter notebook` or VS Code and run cells top to
+bottom. The graph-invoke cells pass `graph_config()`, so Langfuse traces (if configured) are
+captured from the notebook too. The build-indexes cell clears the collections first, so
+re-running it is safe; after fetching new issues, prefer the incremental CLI refresh
+(`build_corpus.py --refresh`). Cells use top-level `await` and the runner's async API
+(`run_comparison_async`) — notebooks run inside an event loop, so `asyncio.run()` is not
+used there.
+
+### 7. Agent skills (opencode)
+
+The `skills/` folder (registered in `opencode.json`) provides ready-made skills that
+opencode agents can load to run and act on this project:
+
+- `setup-environment` — install, `.env` secrets, model/Langfuse overrides
+- `fetch-dataset` — fetch issues + process docs (repos, limits, held-out split)
+- `build-indexes` — clean build + `--refresh`
+- `run-triage` — `run_demo.py` (flags + how to read the decision output)
+- `run-evaluation` — `run_evals.py` (comparison + sweeps, incl. the notebook's async API)
+- `trace-runs` — local `Tracer` + Langfuse setup and verification
+
+Restart opencode after changing skills for them to be discovered.
 
 ## Observability with existing frameworks
 
@@ -268,7 +291,7 @@ open-source and free (self-host with Docker, or its free cloud tier):
 pip install -e ".[trace]"        # or: pip install langfuse
 export LANGFUSE_PUBLIC_KEY=...
 export LANGFUSE_SECRET_KEY=...
-export LANGFUSE_HOST=https://cloud.langfuse.com   # or your self-hosted URL
+export LANGFUSE_BASE_URL=https://cloud.langfuse.com   # or LANGFUSE_HOST / your self-hosted URL
 ```
 
 When those two keys are set, `triage/observability.py` automatically attaches Langfuse's
@@ -301,14 +324,20 @@ open-source / self-hostable choice.
 
 ## Results
 
-To be filled in after the first real run over the selected repos (see "How to run", step
-4). The table below is produced by `run_evals.py`:
+Observed on a small scikit-learn corpus (102 issues / 18 held-out / 6 docs) — enough to
+validate the pipeline, not to draw conclusions. Re-run over the full ~2-3k corpus for
+meaningful numbers:
 
 ```
-system   label_top1  label_top3  action_rouge_l  ...  recall@k  precision@k  latency_p95  cost
-vanilla  ...         ...         ...             ...  ...       ...          ...          ...
-multi    ...         ...         ...             ...  ...       ...          ...          ...
+system   label_top1  label_top3  action_rouge_l  entity_match  answer_rel  context_rel  grounded  recall@10  precision@10  latency_p95  cost
+vanilla  0.3333      0.6667      0.0826          0.0           1.0         0.0          0.0       0.1602     0.5           9.669        0.0002
+multi    0.6667      1.0         0.0531          0.0           1.0         0.0          0.0       0.1602     0.5           6.968        0.0008
 ```
+
+Multi-agent beats the vanilla baseline on labels but both score ~0 on groundedness /
+context-relevance at this scale — the corpus is too small for retrieval to surface enough
+relevant evidence. The retrieval-strategy sweep on one issue showed `rewrite+rerank` lifting
+recall@10 from 0.0 → 0.33 and precision@10 from 0.0 → 0.2 vs base.
 
 ## Problems faced & solutions
 
@@ -331,6 +360,11 @@ multi    ...         ...         ...             ...  ...       ...          ...
 | A user query could try to override the system prompt or be unrelated to triage | Added an input guard (`guardrails/input_guard.py`): rule-based injection detection + an LLM relevance gate (binary verdict); rejected queries short-circuit the graph before any agent work |
 | Raw issue text embeds poorly as a retrieval query and cosine order ignores semantics | Added a query rewriter (`rag/rewrite.py`) and an LLM reranker (`rag/rerank.py`) over a candidate pool; measured via `--sweep-retrieval` |
 | Rebuilding the index over a grown corpus raised duplicate-ID errors and left evicted issues behind | Added `delete`/`clear` to `ChromaStore` and an incremental `sync_issue_index` (`build_corpus.py --refresh`); a startup staleness check warns when the corpus and index drift apart |
+| Langfuse's v4 `CallbackHandler` never saw the agent LLM/tool calls — its callbacks only fire if `config` is threaded into every inner runnable | Made graph nodes config-aware and passed `config` through `react_loop`, the plan/decide tool calls, and the orchestrator; the final decision is captured as the graph output |
+| Langfuse `trace_context` is for distributed-tracing linkage, not the client; passing the client broke ingestion | Wired `CallbackHandler(public_key=...)` — it resolves its own client via `get_client()` |
+| `.env` values pasted with quotes (e.g. `KEY="value"`) broke the OTLP endpoint (host became `"https…`) because the Python loader didn't strip quotes (shells do) | The `.env` loader strips matching quotes; `observability` honors `LANGFUSE_BASE_URL` |
+| LangGraph warns unless the node `config` param is annotated `RunnableConfig` exactly — but ruff's `UP045` keeps rewriting `Optional[X]` → `X \| None` | Annotated the param as `config: RunnableConfig = None`, which satisfies both |
+| Notebooks run inside IPython's event loop, so `asyncio.run()` in a cell fails | Added async runner APIs (`run_comparison_async`, `evaluate_system_async`) and the notebook uses top-level `await` |
 
 ## Learnings
 
@@ -358,6 +392,24 @@ multi    ...         ...         ...             ...  ...       ...          ...
 - **Trace locally before adopting a platform.** A lightweight `Tracer` for per-node,
   per-LLM, per-tool latency answered the questions we had; a hosted backend (Langfuse) is
   only enabled behind env vars when deeper analysis is needed.
+- **Hosted tracing only works if callbacks reach the inner calls.** Attaching a LangChain
+  callback at `graph.ainvoke(...)` is not enough — every nested `model.ainvoke` /
+  `tool.ainvoke` must thread the config, and graph nodes must be config-aware. Verify with a
+  hermetic `RecordingCallbackHandler` test before relying on the live UI.
+- **Hermetic tests can pass while the real integration fails.** The callback-threading test
+  was green, but the first real Langfuse run exposed a wrong `trace_context` argument and a
+  quoted `.env` host. Test integrations against real backends (even briefly) after mocks.
+- **Library type-annotation contracts matter.** LangGraph inspects the node `config`
+  annotation literally; ruff's `UP045` rewrote `Optional[X]` back to `X | None`. Annotate
+  `config: RunnableConfig` and both stay quiet.
+- **Notebooks live inside an event loop.** `asyncio.run()` in a cell raises; expose async
+  APIs (`run_comparison_async`) and let cells use top-level `await` instead of reaching for
+  `nest_asyncio`.
+- **`.env` values may carry stray quotes.** Pasting `KEY="value"` into `.env` works in a
+  shell (which strips quotes) but breaks Python loaders that split on `=`. Strip matching
+  quotes in the loader.
+- **Make the final output readable.** A structured JSON decision is auditable, but humans
+  (and demos) benefit from a formatted summary (`format_decision`) alongside it.
 - **Eval hygiene starts at ingestion.** Carving out a fixed-seed held-out set at fetch time —
   and never letting it enter the corpus — keeps the vanilla-vs-multi comparison honest.
 - **Inject every LLM/embedding callable.** Constructing real clients eagerly couples tests
