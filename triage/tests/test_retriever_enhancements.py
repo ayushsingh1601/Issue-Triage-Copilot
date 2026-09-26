@@ -113,3 +113,27 @@ def test_tools_runbook_reranks_to_limit(tmp_path):
     steps = tools.get_runbook_steps("bug", "how to report")
     assert len(steps) <= 4
     assert steps[0]["source"] == "CONTRIBUTING.md#top#0"
+
+
+def test_retriever_threads_config_to_rewriter_and_reranker(tmp_path):
+    issue_store, doc_store = make_env(tmp_path)
+    seen = {"rewrite": None, "rerank": None}
+
+    def rewrite_respond(prompt, config=None):
+        seen["rewrite"] = config
+        return json.dumps({"query": "crash"})
+
+    def rerank_respond(prompt, config=None):
+        seen["rerank"] = config
+        return json.dumps({"order": [0], "reason": "ok"})
+
+    retriever = Retriever(
+        embedder=Embedder(embed_fn=fake_embed),
+        issue_store=issue_store,
+        doc_store=doc_store,
+        rewriter=QueryRewriter(respond=rewrite_respond),
+        reranker=Reranker(respond=rerank_respond),
+    )
+    retriever.retrieve("crash", k_issues=2, k_docs=1, config={"callbacks": ["x"]})
+    assert seen["rewrite"] == {"callbacks": ["x"]}
+    assert seen["rerank"] == {"callbacks": ["x"]}

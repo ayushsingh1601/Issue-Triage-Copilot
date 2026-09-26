@@ -174,7 +174,7 @@ class EvaluationRunner:
             metric_scores["action_entity_match"].append(overlap["entity_match"])
 
             issue_matches, doc_matches = self._retriever.retrieve(
-                query, k_issues=10, k_docs=3
+                query, k_issues=10, k_docs=3, config=graph_config()
             )
             relevant = self._relevant_ids(record)
             retrieved_ids = [match.id for match in issue_matches]
@@ -184,6 +184,7 @@ class EvaluationRunner:
                 query,
                 decision.model_dump_json(),
                 _context_text(issue_matches, doc_matches),
+                config=graph_config(),
             )
             for metric in METRICS:
                 metric_scores[metric].append(float(judged[metric].score))

@@ -44,3 +44,16 @@ def test_rerank_prompt_includes_candidates():
     assert "0: text 0" in prompt
     assert "crash" in prompt
     assert '"order"' in prompt
+
+
+def test_rerank_threads_config_to_respond():
+    seen = {}
+
+    def respond(prompt, config=None):
+        seen["config"] = config
+        return json.dumps({"order": [1, 0], "reason": "ok"})
+
+    matches = [make_match(0), make_match(1)]
+    reranker = Reranker(respond=respond)
+    reranker.rerank("q", matches, top_k=2, config={"callbacks": ["x"]})
+    assert seen["config"] == {"callbacks": ["x"]}

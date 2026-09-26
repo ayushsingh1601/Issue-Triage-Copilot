@@ -10,7 +10,9 @@ import os
 from collections.abc import Callable
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
 from pydantic import BaseModel
+from triage.agents.react import invoke_respond_sync
 from triage.jsonutil import extract_json
 from triage.prompts.judge import METRICS, build_judge_prompt
 
@@ -31,9 +33,16 @@ class Judge:
         self._default = respond
         self._responds = responds or {}
 
-    def score(self, metric: str, query: str, decision: str, context: str = "") -> JudgeScore:
+    def score(
+        self,
+        metric: str,
+        query: str,
+        decision: str,
+        context: str = "",
+        config: RunnableConfig = None,
+    ) -> JudgeScore:
         prompt = build_judge_prompt(metric, query, decision, context)
-        raw = self._respond_for(metric)(prompt)
+        raw = invoke_respond_sync(self._respond_for(metric), prompt, config)
         data = json.loads(extract_json(raw))
         verdict = str(data.get("verdict", "")).strip().lower()
         return JudgeScore(
@@ -49,8 +58,17 @@ class Judge:
             respond = self._default or default_judge_respond()
         return respond
 
-    def evaluate(self, query: str, decision: str, context: str = "") -> dict[str, JudgeScore]:
-        return {metric: self.score(metric, query, decision, context) for metric in METRICS}
+    def evaluate(
+        self,
+        query: str,
+        decision: str,
+        context: str = "",
+        config: RunnableConfig = None,
+    ) -> dict[str, JudgeScore]:
+        return {
+            metric: self.score(metric, query, decision, context, config=config)
+            for metric in METRICS
+        }
 
 
 def default_judge_respond() -> Any:
@@ -58,4 +76,4 @@ def default_judge_respond() -> Any:
 
     model = os.environ.get("OPENAI_FAST_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=model, temperature=0)
-    return lambda prompt: llm.invoke(prompt).content
+    return lambda prompt, config=None: llm.invoke(prompt, config=config).content

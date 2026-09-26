@@ -1,6 +1,7 @@
 """Shared ReAct loop for the specialist agents."""
 from __future__ import annotations
 
+import inspect
 import time
 from typing import Any
 
@@ -54,4 +55,21 @@ async def invoke_respond(
     """Invoke an LLM respond callable, threading `config` when it supports it."""
     if hasattr(respond, "ainvoke"):
         return await respond.ainvoke(prompt, config=config)
+    return respond(prompt)
+
+
+def invoke_respond_sync(
+    respond: Any,
+    prompt: str,
+    config: RunnableConfig = None,
+) -> str:
+    """Sync variant that threads `config` only into callables that accept it."""
+    if config is None:
+        return respond(prompt)
+    try:
+        signature = inspect.signature(respond)
+    except (TypeError, ValueError):
+        return respond(prompt)
+    if "config" in signature.parameters:
+        return respond(prompt, config=config)
     return respond(prompt)

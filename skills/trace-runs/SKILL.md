@@ -31,7 +31,9 @@ LANGFUSE_BASE_URL=https://cloud.langfuse.com   # or LANGFUSE_HOST / self-hosted 
 Requires `pip install -e ".[trace]"` (or `pip install langfuse`). When the two keys are
 set, `triage/observability.py` attaches Langfuse's LangChain callback to every graph
 invocation — the trace shows **each specialist LLM generation, each MCP tool call and its
-output, and the final `TriageDecision` JSON**.
+output, and the final `TriageDecision` JSON**. Eval-phase LLM calls are captured too: the
+runner threads the callback into the judge (one call per metric), the query rewriter, and
+the reranker.
 
 ## Verify
 

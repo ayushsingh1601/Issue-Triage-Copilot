@@ -2,6 +2,7 @@
 rewriting and LLM re-ranking."""
 from __future__ import annotations
 
+from langchain_core.runnables import RunnableConfig
 from triage.rag.embed import Embedder
 from triage.rag.rerank import Reranker
 from triage.rag.rewrite import QueryRewriter
@@ -30,15 +31,16 @@ class Retriever:
         k_docs: int = 3,
         candidate_issues: int = 15,
         candidate_docs: int = 10,
+        config: RunnableConfig = None,
     ) -> tuple[list[Match], list[Match]]:
-        search_text = self._rewriter.rewrite(query) if self._rewriter else query
+        search_text = self._rewriter.rewrite(query, config=config) if self._rewriter else query
         vector = self._embedder.embed(search_text)
         issue_candidates = self._issue_store.query(
             vector, k=max(k_issues, candidate_issues)
         )
         doc_candidates = self._doc_store.query(vector, k=max(k_docs, candidate_docs))
-        issue_matches = self._rerank(query, issue_candidates, k_issues)
-        doc_matches = self._rerank(query, doc_candidates, k_docs)
+        issue_matches = self._rerank(query, issue_candidates, k_issues, config)
+        doc_matches = self._rerank(query, doc_candidates, k_docs, config)
         return issue_matches, doc_matches
 
     def _rerank(
@@ -46,7 +48,8 @@ class Retriever:
         query: str,
         candidates: list[Match],
         top_k: int,
+        config: RunnableConfig = None,
     ) -> list[Match]:
         if self._reranker is None:
             return candidates[:top_k]
-        return self._reranker.rerank(query, candidates, top_k)
+        return self._reranker.rerank(query, candidates, top_k, config=config)

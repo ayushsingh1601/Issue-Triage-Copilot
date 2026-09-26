@@ -55,3 +55,39 @@ def test_prompt_asks_for_binary_verdict():
     assert "verdict" in prompt
     assert QUERY in prompt
     assert "x/y#1" in prompt
+
+
+def test_judge_threads_config_to_respond():
+    seen = {}
+
+    def respond(prompt, config=None):
+        seen["config"] = config
+        return json.dumps({"verdict": "yes", "reason": "ok"})
+
+    judge = Judge(respond=respond)
+    judge.score("groundedness", QUERY, GOOD_DECISION, CONTEXT, config={"callbacks": ["x"]})
+    assert seen["config"] == {"callbacks": ["x"]}
+
+
+def test_judge_callbacks_fire():
+    from langchain_core.callbacks import BaseCallbackHandler
+    from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
+    from langchain_core.messages import AIMessage, HumanMessage
+
+    class Recorder(BaseCallbackHandler):
+        def __init__(self) -> None:
+            self.llm_ends = 0
+
+        def on_llm_end(self, response, **kwargs) -> None:
+            self.llm_ends += 1
+
+    def respond(prompt, config=None):
+        model = FakeMessagesListChatModel(
+            responses=[AIMessage(content='{"verdict": "yes", "reason": "ok"}')]
+        )
+        return model.invoke([HumanMessage(content=prompt)], config=config).content
+
+    recorder = Recorder()
+    judge = Judge(respond=respond)
+    judge.score("groundedness", QUERY, GOOD_DECISION, CONTEXT, config={"callbacks": [recorder]})
+    assert recorder.llm_ends >= 1

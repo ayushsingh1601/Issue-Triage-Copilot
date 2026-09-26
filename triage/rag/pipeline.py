@@ -43,6 +43,6 @@ class VanillaPipeline:
         config: RunnableConfig = None,
     ) -> TriageDecision:
         issue_matches, doc_matches = self._retriever.retrieve(
-            query, k_issues=k_issues, k_docs=k_docs
+            query, k_issues=k_issues, k_docs=k_docs, config=config
         )
         return await self._agent.run(query, issue_id, issue_matches, doc_matches, config=config)

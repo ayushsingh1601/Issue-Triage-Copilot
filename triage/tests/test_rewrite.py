@@ -23,3 +23,15 @@ def test_rewrite_prompt_includes_issue():
     prompt = build_rewrite_prompt("crash on empty frame")
     assert "crash on empty frame" in prompt
     assert '"query"' in prompt
+
+
+def test_rewrite_threads_config_to_respond():
+    seen = {}
+
+    def respond(prompt, config=None):
+        seen["config"] = config
+        return json.dumps({"query": "crash"})
+
+    rewriter = QueryRewriter(respond=respond)
+    rewriter.rewrite("crash on empty frame", config={"callbacks": ["x"]})
+    assert seen["config"] == {"callbacks": ["x"]}

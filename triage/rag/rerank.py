@@ -6,6 +6,8 @@ import os
 from collections.abc import Callable
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
+from triage.agents.react import invoke_respond_sync
 from triage.jsonutil import extract_json
 from triage.prompts.rerank import build_rerank_prompt
 from triage.rag.store import Match
@@ -16,17 +18,23 @@ def default_rerank_respond() -> Any:
 
     model = os.environ.get("OPENAI_FAST_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=model, temperature=0)
-    return lambda prompt: llm.invoke(prompt).content
+    return lambda prompt, config=None: llm.invoke(prompt, config=config).content
 
 
 class Reranker:
     def __init__(self, respond: Callable[[str], str] | None = None) -> None:
         self._respond = respond or default_rerank_respond()
 
-    def rerank(self, query: str, matches: list[Match], top_k: int) -> list[Match]:
+    def rerank(
+        self,
+        query: str,
+        matches: list[Match],
+        top_k: int,
+        config: RunnableConfig = None,
+    ) -> list[Match]:
         if len(matches) <= 1:
             return matches[:top_k]
-        raw = self._respond(build_rerank_prompt(query, matches))
+        raw = invoke_respond_sync(self._respond, build_rerank_prompt(query, matches), config)
         data = json.loads(extract_json(raw))
         ordered = _order(data.get("order", []), len(matches))
         return [matches[index] for index in ordered[:top_k]]
