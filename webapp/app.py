@@ -19,7 +19,13 @@ from triage.logging import silence_libraries
 
 from webapp.env import load_env_file
 from webapp.evals_cache import load_evals, precompute
-from webapp.repo_service import ensure_repo, find_issue, is_ready, validate_repo
+from webapp.repo_service import (
+    ensure_repo,
+    find_issue,
+    is_ready,
+    latest_issue_number,
+    validate_repo,
+)
 from webapp.triage_service import (
     evaluate_issue,
     summarize_issue,
@@ -60,6 +66,21 @@ def _valid_repo(repo: str) -> bool:
     return bool(re.fullmatch(r"[\w.-]+/[\w.-]+", repo.strip()))
 
 
+def _default_issue_number(repo: str) -> int:
+    """Default the issue field to the repo's latest issue number.
+
+    Fetched once per repo per session and allowed to be stale; falls back
+    to 1 for invalid repos or API failures.
+    """
+    repo = repo.strip()
+    if not _valid_repo(repo):
+        return 1
+    key = f"latest_issue:{repo}"
+    if key not in st.session_state:
+        st.session_state[key] = latest_issue_number(repo) or 1
+    return st.session_state[key]
+
+
 def render_triage() -> None:
     st.header("Triage an issue")
     st.caption(
@@ -72,7 +93,12 @@ def render_triage() -> None:
     number = 1
     text = ""
     if mode == "Issue number":
-        number = st.number_input("Issue number", min_value=1, step=1, value=1)
+        number = st.number_input(
+            "Issue number",
+            min_value=1,
+            step=1,
+            value=_default_issue_number(repo),
+        )
     else:
         text = st.text_area("Issue title and body", height=180)
     run = st.button("Triage", type="primary", width="stretch")

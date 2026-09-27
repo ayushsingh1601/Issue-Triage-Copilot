@@ -230,6 +230,24 @@ def seed_and_build(paths: RepoPaths, progress: ProgressFn | None = None) -> None
     progress("Done.", 1.0)
 
 
+def latest_issue_number(repo: str) -> int | None:
+    """Latest issue number for a repo (may be stale).
+
+    Uses the cached corpus when the repo is built (no API call); otherwise a
+    single lightweight GitHub call for the newest issue.
+    """
+    paths = repo_paths(repo)
+    numbers = [record.number for record in _cached_records(paths)]
+    if numbers:
+        return max(numbers)
+    try:
+        with GitHubClient() as gh:
+            first = next(gh.list_issues(repo, state="all", per_page=1))
+            return int(first["number"])
+    except (GitHubError, StopIteration, KeyError):
+        return None
+
+
 def find_issue(repo: str, number: int) -> IssueRecord | None:
     """Resolve an issue number from the cache, else fetch it live."""
     paths = repo_paths(repo)
@@ -259,6 +277,13 @@ def find_issue(repo: str, number: int) -> IssueRecord | None:
 def _is_ready(paths: RepoPaths) -> bool:
     status = _read_status(paths.status)
     return bool(status and status.get("state") == READY)
+
+
+def _cached_records(paths: RepoPaths) -> Iterator[IssueRecord]:
+    for filename in ("issues_corpus.json", "issues_held_out.json"):
+        file_path = paths.processed / filename
+        if file_path.exists():
+            yield from load_records(file_path, IssueRecord)
 
 
 def _seed_dir_for(key: str) -> Path | None:
