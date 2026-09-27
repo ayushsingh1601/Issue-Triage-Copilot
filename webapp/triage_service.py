@@ -1,17 +1,21 @@
 """Run the multi-agent triage graph over a cached repo and return a renderable result."""
 from __future__ import annotations
 
+import json
 import time
 from typing import Any
 
 from triage.agents.vanilla import VanillaAgent
+from triage.evals.judge import Judge
 from triage.evals.metrics import action_overlap, label_accuracy
+from triage.evals.runner import _context_text, _evidence_text
 from triage.guardrails.input_guard import InputGuard
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
 from triage.observability import graph_config
 from triage.orchestration.graph import build_graph
 from triage.orchestration.state import TriageState
+from triage.persist import load_records
 from triage.rag.parse import IssueRecord
 from triage.rag.pipeline import VanillaPipeline
 from triage.rag.rerank import Reranker
@@ -87,6 +91,8 @@ async def _triage_async(
         "classification": result["classification"],
         "needs_human": result["needs_human"],
         "decision": decision,
+        "historical_evidence": result["historical_evidence"],
+        "runbook_steps": result["runbook_steps"],
         "latency_seconds": round(time.perf_counter() - start, 2),
         "trace_summary": tracer.summary(),
     }
@@ -95,37 +101,62 @@ async def _triage_async(
 def evaluate_issue(
     paths: RepoPaths,
     record: IssueRecord,
-    multi_decision: dict[str, Any] | None,
+    multi_result: dict[str, Any],
 ) -> dict[str, Any]:
     """Score the multi-agent decision for ONE issue vs the vanilla baseline.
 
-    Uses the actual resolution (labels, closing comment, linked PRs) as the
-    reference. Runs only the cheap vanilla pipeline — the multi-agent decision
-    is reused from the triage the user just ran.
+    Objective metrics use the actual resolution (labels, closing comment,
+    linked PRs) as the reference; judge metrics use the same evidence-aware
+    context as the aggregate eval (multi is judged against the evidence its
+    specialists gathered, vanilla against the raw retriever top-k). Only the
+    cheap vanilla pipeline is re-run — the multi-agent result is reused.
     """
     query = f"{record.title}\n\n{record.body}"
     issue_id = f"{record.repo}#{record.number}"
 
     with triage_lock(paths.key):
         async def _run() -> dict[str, Any]:
-            vanilla = await _run_vanilla(paths, query, issue_id)
+            tools = build_tools(paths)
+            vanilla = await _run_vanilla(tools, query, issue_id)
+            issue_matches, doc_matches = tools.retriever().retrieve(
+                query, k_issues=10, k_docs=3
+            )
+            raw_context = _context_text(issue_matches, doc_matches)
+            corpus = load_records(paths.processed / "issues_corpus.json", IssueRecord)
+            evidence = {
+                "similar_issues": multi_result.get("historical_evidence") or [],
+                "runbook_steps": multi_result.get("runbook_steps") or [],
+            }
+            multi_context = f"{_evidence_text(evidence, corpus)}\n\n{raw_context}"
+            if not (evidence["similar_issues"] or evidence["runbook_steps"]):
+                multi_context = raw_context
+            judge = Judge()
             return {
                 "issue_id": issue_id,
                 "actual_labels": record.labels,
-                "multi": _score_decision(multi_decision or {}, record),
-                "vanilla": _score_decision(vanilla.model_dump(mode="json"), record),
+                "multi": _score_decision(
+                    multi_result.get("decision") or {}, record, query, multi_context, judge
+                ),
+                "vanilla": _score_decision(
+                    vanilla.model_dump(mode="json"), record, query, raw_context, judge
+                ),
             }
 
         return run_async(_run())
 
 
-async def _run_vanilla(paths: RepoPaths, query: str, issue_id: str) -> Any:
-    tools = build_tools(paths)
+async def _run_vanilla(tools: TriageTools, query: str, issue_id: str) -> Any:
     pipeline = VanillaPipeline(retriever=tools.retriever(), agent=VanillaAgent())
     return await pipeline.run(query, issue_id, config=graph_config())
 
 
-def _score_decision(decision: dict[str, Any], record: IssueRecord) -> dict[str, float]:
+def _score_decision(
+    decision: dict[str, Any],
+    record: IssueRecord,
+    query: str,
+    context: str,
+    judge: Judge,
+) -> dict[str, float]:
     reference = record.comments[-1].body if record.comments else ""
     labels = label_accuracy(decision.get("suggested_labels") or [], record.labels)
     overlap = action_overlap(
@@ -133,9 +164,13 @@ def _score_decision(decision: dict[str, Any], record: IssueRecord) -> dict[str, 
         reference,
         record.linked_prs,
     )
+    judged = judge.evaluate(query, json.dumps(decision), context)
     return {
         "label_top1": labels["top1"],
         "label_top3": labels["top3"],
         "action_rouge_l": overlap["rouge_l"],
         "action_entity_match": overlap["entity_match"],
+        "answer_relevancy": float(judged["answer_relevancy"].score),
+        "context_relevance": float(judged["context_relevance"].score),
+        "groundedness": float(judged["groundedness"].score),
     }

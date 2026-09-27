@@ -130,8 +130,8 @@ def render_triage() -> None:
             actual_labels = set(actual["actual_labels"])
             st.caption(f"Suggested vs actual labels: {suggested or set()} vs {actual_labels}")
     if actual and mode == "Issue number" and result["decision"]:
-        with st.spinner("Scoring this issue against the vanilla baseline…"):
-            issue_eval = evaluate_issue(paths, record, result["decision"])
+        with st.spinner("Scoring this issue vs the vanilla baseline…"):
+            issue_eval = evaluate_issue(paths, record, result)
         st.session_state["issue_eval"] = issue_eval
         _render_issue_eval(issue_eval)
 
@@ -198,8 +198,9 @@ def _render_actual(actual: dict) -> None:
 def _render_issue_eval(issue_eval: dict) -> None:
     st.subheader("Eval for this issue")
     st.caption(
-        f"Score vs the actual resolution of {issue_eval['issue_id']} — "
-        "labels, closing comment, and linked PRs."
+        f"Score vs the actual resolution of {issue_eval['issue_id']} — labels, closing "
+        "comment, linked PRs, and LLM-judge verdicts (answer relevance, context relevance, "
+        "groundedness) on the evidence each system used."
     )
     rows = []
     for system in ("multi", "vanilla"):
@@ -211,13 +212,19 @@ def _render_issue_eval(issue_eval: dict) -> None:
                 "label top-3": scores["label_top3"],
                 "action ROUGE-L": scores["action_rouge_l"],
                 "entity match": scores["action_entity_match"],
+                "answer relevancy": scores["answer_relevancy"],
+                "context relevance": scores["context_relevance"],
+                "groundedness": scores["groundedness"],
             }
         )
     st.dataframe(rows, width="stretch")
     multi = issue_eval["multi"]
     st.caption(
         f"Multi-agent: labels {'matched' if multi['label_top3'] else 'missed'} actual, "
-        f"action overlap {multi['action_rouge_l']:.2f}."
+        f"action overlap {multi['action_rouge_l']:.2f}, "
+        f"answer-relevance {multi['answer_relevancy']}, "
+        f"context-relevance {multi['context_relevance']}, "
+        f"groundedness {multi['groundedness']}."
     )
 
 
