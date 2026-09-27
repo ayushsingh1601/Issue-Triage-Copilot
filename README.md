@@ -6,6 +6,10 @@ next steps, likely affected modules, and 2-4 similar previously-resolved issues 
 citations. Every recommendation is grounded in a cited source (issue ID, PR, or doc
 section). The system recommends actions only; it never resolves issues or edits code.
 
+> **New to the project?** Start with [`docs/DESIGN.md`](docs/DESIGN.md) — a plain-language
+> walkthrough of the problem, the data/retrieval/orchestration design, and the evaluation
+> choices and why they were made.
+
 ## Architecture
 
 Two RAG indexes are built at ingestion time from GitHub API data (no live API calls at
