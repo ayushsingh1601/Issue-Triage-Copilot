@@ -15,6 +15,11 @@ def verify_decision(
     cleaned.similar_issues = [
         issue for issue in decision.similar_issues if issue.issue_id in issue_ids
     ]
+    # Every referenced similar issue is a verified source; make sure it is
+    # listed as a citation so groundedness checks can resolve it.
+    for issue in cleaned.similar_issues:
+        if issue.issue_id not in cleaned.citations:
+            cleaned.citations.append(issue.issue_id)
     return cleaned
 
 

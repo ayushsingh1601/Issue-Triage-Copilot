@@ -29,6 +29,21 @@ def parse_json_documents(text: str) -> list[Any]:
     return documents
 
 
+def parse_json_items(text: str) -> list[Any]:
+    """Parse a tool response into a flat list of JSON items.
+
+    MCP tools return JSON arrays, which ``parse_json_documents`` yields as one
+    whole-array document. Flatten it so callers get one element per item.
+    """
+    items: list[Any] = []
+    for document in parse_json_documents(text):
+        if isinstance(document, list):
+            items.extend(document)
+        else:
+            items.append(document)
+    return items
+
+
 def content_text(result: Any) -> str:
     if isinstance(result, list):
         parts = [block["text"] for block in result if isinstance(block, dict) and "text" in block]

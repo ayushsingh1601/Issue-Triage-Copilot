@@ -20,7 +20,11 @@ from triage.logging import silence_libraries
 from webapp.env import load_env_file
 from webapp.evals_cache import load_evals, precompute
 from webapp.repo_service import ensure_repo, find_issue, is_ready, validate_repo
-from webapp.triage_service import summarize_issue, triage_issue
+from webapp.triage_service import (
+    evaluate_issue,
+    summarize_issue,
+    triage_issue,
+)
 
 load_env_file()
 silence_libraries()
@@ -125,6 +129,11 @@ def render_triage() -> None:
             suggested = set(result["decision"]["suggested_labels"])
             actual_labels = set(actual["actual_labels"])
             st.caption(f"Suggested vs actual labels: {suggested or set()} vs {actual_labels}")
+    if actual and mode == "Issue number" and result["decision"]:
+        with st.spinner("Scoring this issue against the vanilla baseline…"):
+            issue_eval = evaluate_issue(paths, record, result["decision"])
+        st.session_state["issue_eval"] = issue_eval
+        _render_issue_eval(issue_eval)
 
 
 def _render_decision(result: dict) -> None:
@@ -186,8 +195,40 @@ def _render_actual(actual: dict) -> None:
         st.markdown(f"**Closing comment:** {actual['closing_comment']}")
 
 
+def _render_issue_eval(issue_eval: dict) -> None:
+    st.subheader("Eval for this issue")
+    st.caption(
+        f"Score vs the actual resolution of {issue_eval['issue_id']} — "
+        "labels, closing comment, and linked PRs."
+    )
+    rows = []
+    for system in ("multi", "vanilla"):
+        scores = issue_eval[system]
+        rows.append(
+            {
+                "system": _SYSTEM_LABELS.get(system, system),
+                "label top-1": scores["label_top1"],
+                "label top-3": scores["label_top3"],
+                "action ROUGE-L": scores["action_rouge_l"],
+                "entity match": scores["action_entity_match"],
+            }
+        )
+    st.dataframe(rows, width="stretch")
+    multi = issue_eval["multi"]
+    st.caption(
+        f"Multi-agent: labels {'matched' if multi['label_top3'] else 'missed'} actual, "
+        f"action overlap {multi['action_rouge_l']:.2f}."
+    )
+
+
 def render_evals() -> None:
     st.header("Evaluation")
+
+    latest = st.session_state.get("issue_eval")
+    if latest:
+        st.subheader("Latest triaged issue")
+        _render_issue_eval(latest)
+
     data = load_evals()
     if data is None:
         st.info(

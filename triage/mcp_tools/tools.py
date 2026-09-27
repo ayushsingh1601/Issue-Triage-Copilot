@@ -23,6 +23,16 @@ DEFAULT_ISSUE_TYPES = ["bug", "enhancement", "documentation", "question", "maint
 RespondFn = Callable[[str], str]
 
 
+def _matches_repo(stored: str, requested: str) -> bool:
+    """Lenient repo match: agents may pass just the owner (e.g. "scikit-learn")."""
+    return stored == requested or requested in stored
+
+
+def _matches_type(labels: list[str], issue_type: str) -> bool:
+    needle = issue_type.lower()
+    return any(needle == label.lower() or needle in label.lower() for label in labels)
+
+
 def default_llm_respond() -> RespondFn:
     from langchain_openai import ChatOpenAI
 
@@ -68,17 +78,22 @@ class TriageTools:
         issue_type: str | None = None,
         limit: int = 5,
     ) -> list[dict[str, Any]]:
-        where = {"repo": repo} if repo else None
         search_text = self._rewriter.rewrite(query) if self._rewriter else query
-        matches = self._issue_store.query(
-            self._embedder.embed(search_text), k=max(limit * 3, 10), where=where
-        )
+        matches = self._issue_store.query(self._embedder.embed(search_text), k=max(limit * 4, 20))
         candidates = [
             match
             for match in matches
             if self._records.get(match.id) is not None
-            and (issue_type is None or issue_type in self._records[match.id].labels)
+            and (repo is None or _matches_repo(self._records[match.id].repo, repo))
         ]
+        if issue_type:
+            typed = [
+                match
+                for match in candidates
+                if _matches_type(self._records[match.id].labels, issue_type)
+            ]
+            if typed:
+                candidates = typed
         ranked = (
             self._reranker.rerank(query, candidates, limit)
             if self._reranker
@@ -145,7 +160,7 @@ class TriageTools:
     def get_resolution_patterns(self, issue_type: str, repo: str | None = None) -> dict[str, Any]:
         records = [r for r in self._records.values() if issue_type in r.labels]
         if repo:
-            records = [r for r in records if r.repo == repo]
+            records = [r for r in records if _matches_repo(r.repo, repo)]
         if not records:
             return {
                 "issue_type": issue_type,

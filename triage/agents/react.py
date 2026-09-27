@@ -8,6 +8,7 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
+
 from triage.jsonutil import content_text
 from triage.tracing import Tracer
 
@@ -21,6 +22,18 @@ async def react_loop(
     tracer: Tracer | None = None,
     config: RunnableConfig = None,
 ) -> list[Any]:
+    """ReAct loop with function calling.
+
+    The model is bound to the tools before the loop; without this the LLM
+    never sees the tool schemas and returns a plain answer (no evidence).
+    Scripted/fake models used in tests are used as-is when binding is not
+    supported.
+    """
+    if hasattr(model, "bind_tools"):
+        try:
+            model = model.bind_tools(tools)
+        except NotImplementedError:
+            pass
     by_name = {tool.name: tool for tool in tools}
     messages: list[Any] = [SystemMessage(content=system), HumanMessage(content=query)]
     for _ in range(max_steps):
@@ -28,8 +41,8 @@ async def react_loop(
         response = await model.ainvoke(messages, config=config)
         if tracer:
             tracer.record("llm", (time.perf_counter() - start) * 1000)
+        messages.append(response)
         if not response.tool_calls:
-            messages.append(response)
             break
         for call in response.tool_calls:
             start = time.perf_counter()
@@ -43,7 +56,6 @@ async def react_loop(
                     name=call["name"],
                 )
             )
-        messages.append(response)
     return messages
 
 

@@ -5,6 +5,7 @@ import os
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
+
 from triage.agents.react import invoke_respond
 from triage.guardrails.schema import TriageDecision
 from triage.jsonutil import extract_json

@@ -4,6 +4,8 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from triage.agents.vanilla import VanillaAgent
+from triage.evals.metrics import action_overlap, label_accuracy
 from triage.guardrails.input_guard import InputGuard
 from triage.mcp_tools.langchain import AgentToolbox
 from triage.mcp_tools.tools import TriageTools
@@ -11,6 +13,7 @@ from triage.observability import graph_config
 from triage.orchestration.graph import build_graph
 from triage.orchestration.state import TriageState
 from triage.rag.parse import IssueRecord
+from triage.rag.pipeline import VanillaPipeline
 from triage.rag.rerank import Reranker
 from triage.rag.rewrite import QueryRewriter
 from triage.tracing import Tracer
@@ -86,4 +89,53 @@ async def _triage_async(
         "decision": decision,
         "latency_seconds": round(time.perf_counter() - start, 2),
         "trace_summary": tracer.summary(),
+    }
+
+
+def evaluate_issue(
+    paths: RepoPaths,
+    record: IssueRecord,
+    multi_decision: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Score the multi-agent decision for ONE issue vs the vanilla baseline.
+
+    Uses the actual resolution (labels, closing comment, linked PRs) as the
+    reference. Runs only the cheap vanilla pipeline — the multi-agent decision
+    is reused from the triage the user just ran.
+    """
+    query = f"{record.title}\n\n{record.body}"
+    issue_id = f"{record.repo}#{record.number}"
+
+    with triage_lock(paths.key):
+        async def _run() -> dict[str, Any]:
+            vanilla = await _run_vanilla(paths, query, issue_id)
+            return {
+                "issue_id": issue_id,
+                "actual_labels": record.labels,
+                "multi": _score_decision(multi_decision or {}, record),
+                "vanilla": _score_decision(vanilla.model_dump(mode="json"), record),
+            }
+
+        return run_async(_run())
+
+
+async def _run_vanilla(paths: RepoPaths, query: str, issue_id: str) -> Any:
+    tools = build_tools(paths)
+    pipeline = VanillaPipeline(retriever=tools.retriever(), agent=VanillaAgent())
+    return await pipeline.run(query, issue_id, config=graph_config())
+
+
+def _score_decision(decision: dict[str, Any], record: IssueRecord) -> dict[str, float]:
+    reference = record.comments[-1].body if record.comments else ""
+    labels = label_accuracy(decision.get("suggested_labels") or [], record.labels)
+    overlap = action_overlap(
+        decision.get("next_steps") or [],
+        reference,
+        record.linked_prs,
+    )
+    return {
+        "label_top1": labels["top1"],
+        "label_top3": labels["top3"],
+        "action_rouge_l": overlap["rouge_l"],
+        "action_entity_match": overlap["entity_match"],
     }

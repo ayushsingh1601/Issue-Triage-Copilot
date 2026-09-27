@@ -3,6 +3,7 @@ plus a doc-chunking sweep. All LLM components are injectable for tests."""
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
@@ -10,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
+
 from triage.agents.historical import HistoricalAgent
 from triage.agents.historical import default_model as historical_default_model
 from triage.agents.process import ProcessAgent
@@ -148,8 +150,7 @@ class EvaluationRunner:
     async def evaluate_system_async(self, system: str, limit: int | None = None) -> SystemResults:
         records = self._held_out[:limit] if limit else self._held_out
         runs = await self._run_system(system, records)
-        decisions = [decision for decision, _ in runs]
-        latencies = [latency for _, latency in runs]
+        latencies = [latency for _, latency, _ in runs]
         metric_scores: dict[str, list[float]] = {
             "label_top1": [],
             "label_top3": [],
@@ -161,7 +162,7 @@ class EvaluationRunner:
         for metric in METRICS:
             metric_scores[metric] = []
 
-        for record, decision in zip(records, decisions, strict=True):
+        for record, (decision, _, evidence) in zip(records, runs, strict=True):
             query = f"{record.title}\n\n{record.body}"
 
             label = label_accuracy(decision.suggested_labels, record.labels)
@@ -180,10 +181,15 @@ class EvaluationRunner:
             retrieved_ids = [match.id for match in issue_matches]
             metric_scores["recall"].append(recall_at_k(retrieved_ids, relevant))
             metric_scores["precision"].append(precision_at_k(retrieved_ids, relevant))
+            context = _context_text(issue_matches, doc_matches)
+            if evidence:
+                # Judge the multi-agent against the evidence its specialists
+                # actually gathered, not just the raw retriever top-k.
+                context = f"{_evidence_text(evidence, self._corpus)}\n\n{context}"
             judged = self._judge.evaluate(
                 query,
                 decision.model_dump_json(),
-                _context_text(issue_matches, doc_matches),
+                context,
                 config=graph_config(),
             )
             for metric in METRICS:
@@ -205,24 +211,25 @@ class EvaluationRunner:
 
     async def _run_system(
         self, system: str, records: list[IssueRecord]
-    ) -> list[tuple[TriageDecision, float]]:
-        runs: list[tuple[TriageDecision, float]] = []
+    ) -> list[tuple[TriageDecision, float, dict[str, Any] | None]]:
+        runs: list[tuple[TriageDecision, float, dict[str, Any] | None]] = []
         for record in records:
             query = f"{record.title}\n\n{record.body}"
             issue_id = f"{record.repo}#{record.number}"
             start = time.perf_counter()
             if system == "vanilla":
                 decision = await self._run_vanilla(query, issue_id)
+                evidence = None
             else:
-                decision = await self._run_multi(query, issue_id)
-            runs.append((decision, time.perf_counter() - start))
+                decision, evidence = await self._run_multi(query, issue_id)
+            runs.append((decision, time.perf_counter() - start, evidence))
         return runs
 
     async def _run_vanilla(self, query: str, issue_id: str) -> TriageDecision:
         pipeline = VanillaPipeline(retriever=self._retriever, agent=self._vanilla_agent)
         return await pipeline.run(query, issue_id, config=graph_config())
 
-    async def _run_multi(self, query: str, issue_id: str) -> TriageDecision:
+    async def _run_multi(self, query: str, issue_id: str) -> tuple[TriageDecision, dict[str, Any]]:
         async with AgentToolbox(self._tools) as box:
             graph = build_graph(
                 toolbox=box,
@@ -235,7 +242,11 @@ class EvaluationRunner:
                 config=graph_config(),
             )
         assert result["decision"] is not None
-        return result["decision"]
+        evidence = {
+            "similar_issues": result["historical_evidence"],
+            "runbook_steps": result["runbook_steps"],
+        }
+        return result["decision"], evidence
 
     def _relevant_ids(self, record: IssueRecord) -> set[str]:
         return {
@@ -394,6 +405,30 @@ def _context_text(issue_matches: list[Match], doc_matches: list[Match]) -> str:
     issues = "\n".join(match.text for match in issue_matches[:3])
     docs = "\n".join(match.text for match in doc_matches)
     return "\n".join(part for part in (issues, docs) if part)
+
+
+def _evidence_text(evidence: dict[str, Any], corpus: list[IssueRecord] | None = None) -> str:
+    """Render the multi-agent's gathered evidence for the judge.
+
+    The specialists retrieve similar issues and runbook steps; grounding
+    should be judged against what they actually gathered, not just the raw
+    retriever top-k. Cited similar issues are expanded to their full text
+    so the judge can verify claims against them.
+    """
+    parts: list[str] = []
+    if evidence.get("similar_issues"):
+        by_id = {f"{r.repo}#{r.number}": r for r in corpus or []}
+        rows: list[str] = []
+        for item in evidence["similar_issues"]:
+            record = by_id.get(item.get("issue_id"))
+            if record is None:
+                rows.append(json.dumps(item))
+                continue
+            rows.append(f"[{record.repo}#{record.number}] {record.title}\n{record.body}")
+        parts.append("SIMILAR ISSUES RETRIEVED:\n" + "\n\n".join(rows))
+    if evidence.get("runbook_steps"):
+        parts.append("RUNBOOK STEPS RETRIEVED:\n" + json.dumps(evidence["runbook_steps"], indent=1))
+    return "\n\n".join(parts)
 
 
 def _mean(values: list[float]) -> float:

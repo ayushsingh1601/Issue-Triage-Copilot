@@ -291,7 +291,10 @@ The `webapp/` folder is a Streamlit app that serves the whole copilot online for
   builds a per-repo RAG index on the spot; every later triage for that repo is served
   from cache. Outputs the guard verdict, classification, the formatted decision, the
   decision JSON, citations, a per-stage latency trace, and (for fetched issues) the
-  actual resolution side by side.
+  actual resolution side by side. For an issue triaged by number, a **per-issue eval**
+  panel scores the multi-agent decision vs the vanilla baseline against the actual
+  resolution (labels, action overlap), and the same scores appear at the top of the
+  Evals tab.
 - **Evals tab** — shows the cached vanilla-RAG vs multi-agent comparison (multi-agent
   is the primary result), plus the retrieval-strategy sweep, latency, and cost. Results
   are precomputed once and cached, not re-run per visitor.
@@ -370,20 +373,23 @@ open-source / self-hostable choice.
 
 ## Results
 
-Observed on a small scikit-learn corpus (102 issues / 18 held-out / 6 docs) — enough to
-validate the pipeline, not to draw conclusions. Re-run over the full ~2-3k corpus for
-meaningful numbers:
+Observed on a scikit-learn corpus (255 corpus / 45 held-out / 6 docs) after the agent-tool
+fixes below — the specialists now actually call the MCP tools, so evidence and citations
+populate. Numbers are from a 15-issue held-out sample; re-run over the full ~2-3k corpus
+for more stable figures:
 
 ```
 system   label_top1  label_top3  action_rouge_l  entity_match  answer_rel  context_rel  grounded  recall@10  precision@10  latency_p95  cost
-vanilla  0.3333      0.6667      0.0826          0.0           1.0         0.0          0.0       0.1602     0.5           9.669        0.0002
-multi    0.6667      1.0         0.0531          0.0           1.0         0.0          0.0       0.1602     0.5           6.968        0.0008
+vanilla  0.3333      0.3333      0.0520          0.0           1.0         0.2          0.0       0.0860     0.26          12.2         0.0002
+multi    0.3333      0.4000      0.0480          0.0           1.0         0.2667       0.0       0.0880     0.26          13.8         0.0008
 ```
 
-Multi-agent beats the vanilla baseline on labels but both score ~0 on groundedness /
-context-relevance at this scale — the corpus is too small for retrieval to surface enough
-relevant evidence. The retrieval-strategy sweep on one issue showed `rewrite+rerank` lifting
-recall@10 from 0.0 → 0.33 and precision@10 from 0.0 → 0.2 vs base.
+Context-relevance is the judge's estimate of whether the retrieved evidence supports the
+decision; multi now leads it because the specialists gather similar issues + runbook steps.
+Groundedness stays ~0: the judge requires every synthetic `next_steps` claim to be directly
+traceable to the retrieved context, which triage recommendations rarely are — a strict bar,
+documented as a known limitation. The retrieval-strategy sweep showed `rewrite+rerank`
+lifting recall@10 vs base.
 
 ## Problems faced & solutions
 
@@ -410,6 +416,10 @@ recall@10 from 0.0 → 0.33 and precision@10 from 0.0 → 0.2 vs base.
 | Langfuse `trace_context` is for distributed-tracing linkage, not the client; passing the client broke ingestion | Wired `CallbackHandler(public_key=...)` — it resolves its own client via `get_client()` |
 | `.env` values pasted with quotes (e.g. `KEY="value"`) broke the OTLP endpoint (host became `"https…`) because the Python loader didn't strip quotes (shells do) | The `.env` loader strips matching quotes; `observability` honors `LANGFUSE_BASE_URL` |
 | LangGraph warns unless the node `config` param is annotated `RunnableConfig` exactly — but ruff's `UP045` keeps rewriting `Optional[X]` → `X \| None` | Annotated the param as `config: RunnableConfig = None`, which satisfies both |
+| The ReAct agents returned a plain answer with **no tool calls** in real runs, so no similar issues / runbook steps / citations were ever gathered (tests used scripted models that returned `tool_calls` directly) | Bind the tools to the model at the top of `react_loop` (`model.bind_tools(tools)`) when the model supports it |
+| Once tools were bound, OpenAI rejected the messages: `ToolMessage` must follow the `AIMessage` that declared the `tool_calls` | Append the `AIMessage` before the `ToolMessage`s in `react_loop` |
+| The agents passed just the repo owner (e.g. `scikit-learn`) while the corpus repo is `owner/name`, so the exact-match `where` filter returned nothing | Made the repo/issue-type filters lenient (`_matches_repo`, `_matches_type`) with a Python-side fallback when the type filter is too strict |
+| The judge's groundedness could never pass: decisions cited doc sources only, and the judge context was the raw retriever top-k, not what the specialists gathered | `verify_decision` adds each similar-issue id to `citations`; the eval runner judges multi against its actual evidence (full similar-issue text) |
 | Notebooks run inside IPython's event loop, so `asyncio.run()` in a cell fails | Added async runner APIs (`run_comparison_async`, `evaluate_system_async`) and the notebook uses top-level `await` |
 
 ## Learnings

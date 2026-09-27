@@ -7,8 +7,9 @@ from typing import Any
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
+
 from triage.agents.react import react_loop
-from triage.jsonutil import parse_json_documents
+from triage.jsonutil import parse_json_documents, parse_json_items
 from triage.prompts.historical import SYSTEM_PROMPT
 from triage.tracing import Tracer
 
@@ -43,7 +44,7 @@ class HistoricalAgent:
         citations: list[str] = []
         for message in transcript:
             if isinstance(message, ToolMessage) and message.name == "search_past_issues":
-                for item in parse_json_documents(message.content):
+                for item in parse_json_items(message.content):
                     evidence["similar_issues"].append(item)
                     _add_citation(citations, item["issue_id"])
             elif isinstance(message, ToolMessage) and message.name == "get_issue_details":

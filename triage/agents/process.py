@@ -7,8 +7,9 @@ from typing import Any
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
+
 from triage.agents.react import react_loop
-from triage.jsonutil import parse_json_documents
+from triage.jsonutil import parse_json_items
 from triage.prompts.process import SYSTEM_PROMPT
 from triage.tracing import Tracer
 
@@ -40,7 +41,7 @@ class ProcessAgent:
         citations: list[str] = []
         for message in transcript:
             if isinstance(message, ToolMessage) and message.name == "get_runbook_steps":
-                for item in parse_json_documents(message.content):
+                for item in parse_json_items(message.content):
                     evidence["steps"].append(item)
                     if item["source"] not in citations:
                         citations.append(item["source"])
