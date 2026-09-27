@@ -1,7 +1,6 @@
 """Run the multi-agent triage graph over a cached repo and return a renderable result."""
 from __future__ import annotations
 
-import asyncio
 import time
 from typing import Any
 
@@ -16,7 +15,7 @@ from triage.rag.rerank import Reranker
 from triage.rag.rewrite import QueryRewriter
 from triage.tracing import Tracer
 
-from webapp.repo_service import RepoPaths
+from webapp.repo_service import RepoPaths, run_async, triage_lock
 
 
 def build_tools(paths: RepoPaths) -> TriageTools:
@@ -47,11 +46,17 @@ def triage_issue(
     query: str,
     issue_id: str,
     *,
-    tools: TriageTools | None = None,
     use_guard: bool = True,
 ) -> dict[str, Any]:
-    """Run one triage synchronously (Streamlit-friendly) and return the full result."""
-    return asyncio.run(_triage_async(paths, query, issue_id, tools=tools, use_guard=use_guard))
+    """Run one triage synchronously (Streamlit-friendly) and return the full result.
+
+    The graph runs on a single long-lived process event loop and is
+    serialized per repo: LLM/HTTP clients must not be torn down against a
+    closed loop (a fresh ``asyncio.run`` per call breaks the second triage
+    with "Event loop is closed"), and ChromaDB is not thread-safe.
+    """
+    with triage_lock(paths.key):
+        return run_async(_triage_async(paths, query, issue_id, use_guard=use_guard))
 
 
 async def _triage_async(
@@ -59,10 +64,9 @@ async def _triage_async(
     query: str,
     issue_id: str,
     *,
-    tools: TriageTools | None,
     use_guard: bool,
 ) -> dict[str, Any]:
-    tools = tools or build_tools(paths)
+    tools = build_tools(paths)
     tracer = Tracer()
     input_guard = InputGuard() if use_guard else None
     start = time.perf_counter()

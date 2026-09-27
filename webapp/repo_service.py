@@ -7,11 +7,14 @@ concurrent sessions wait instead of rebuilding.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import shutil
+import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -35,6 +38,44 @@ READY = "ready"
 ERROR = "error"
 
 ProgressFn = Callable[[str, float | None], None]
+
+_triage_locks: dict[str, threading.Lock] = {}
+_locks_guard = threading.Lock()
+
+_event_loop: asyncio.AbstractEventLoop | None = None
+_event_loop_guard = threading.Lock()
+
+
+@contextmanager
+def triage_lock(key: str) -> Iterator[None]:
+    """Serialize graph runs per repo.
+
+    LangGraph/LLM clients are bound to one event loop, and ChromaDB is not
+    thread-safe, so concurrent triages on the same repo must not overlap.
+    """
+    with _locks_guard:
+        lock = _triage_locks.setdefault(key, threading.Lock())
+    with lock:
+        yield
+
+
+def run_async(coro: Coroutine) -> Any:
+    """Run a coroutine on the process-wide event loop.
+
+    Free hosts reuse one process for many sessions, and each triage builds
+    fresh LLM/HTTP clients. If every run created and closed its own loop
+    (``asyncio.run``), those clients are finalized later by garbage
+    collection and try to close their transports on an already-closed loop
+    ("Event loop is closed"). A single long-lived loop avoids that entirely.
+    """
+    global _event_loop
+    with _event_loop_guard:
+        if _event_loop is None or _event_loop.is_closed():
+            _event_loop = asyncio.new_event_loop()
+            threading.Thread(target=_event_loop.run_forever, daemon=True).start()
+        loop = _event_loop
+    future = asyncio.run_coroutine_threadsafe(coro, loop)
+    return future.result()
 
 
 @dataclass(frozen=True)

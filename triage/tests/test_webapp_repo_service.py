@@ -1,6 +1,7 @@
 """Tests for webapp.repo_service: per-repo cache, locking, and status handling."""
 from __future__ import annotations
 
+import asyncio
 import os
 import threading
 import time
@@ -180,3 +181,24 @@ def test_seed_and_build_is_offline(tmp_path, monkeypatch):
     assert (paths.indexes / "docs").is_dir()
     assert repo_service.is_ready(key)
     assert "embedder" in calls
+
+
+def test_run_async_reuses_one_event_loop():
+    loops = [
+        repo_service.run_async(_running_loop_id())
+        for _ in range(3)
+    ]
+    assert len(set(loops)) == 1
+
+
+def test_run_async_propagates_exceptions():
+    with pytest.raises(RuntimeError, match="boom"):
+        repo_service.run_async(_boom())
+
+
+async def _running_loop_id() -> int:
+    return id(asyncio.get_running_loop())
+
+
+async def _boom() -> None:
+    raise RuntimeError("boom")

@@ -16,12 +16,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import streamlit as st
 from triage.logging import silence_libraries
-from triage.mcp_tools.tools import TriageTools
 
 from webapp.env import load_env_file
 from webapp.evals_cache import load_evals, precompute
-from webapp.repo_service import RepoPaths, ensure_repo, find_issue, is_ready, validate_repo
-from webapp.triage_service import build_tools, summarize_issue, triage_issue
+from webapp.repo_service import ensure_repo, find_issue, is_ready, validate_repo
+from webapp.triage_service import summarize_issue, triage_issue
 
 load_env_file()
 silence_libraries()
@@ -55,11 +54,6 @@ _EVALS_WORKER_STARTED = False
 
 def _valid_repo(repo: str) -> bool:
     return bool(re.fullmatch(r"[\w.-]+/[\w.-]+", repo.strip()))
-
-
-@st.cache_resource
-def get_tools(paths: RepoPaths) -> TriageTools:
-    return build_tools(paths)
 
 
 def render_triage() -> None:
@@ -122,7 +116,7 @@ def render_triage() -> None:
         actual = None
 
     with st.spinner("Triaging…"):
-        result = triage_issue(paths, query, issue_id, tools=get_tools(paths))
+        result = triage_issue(paths, query, issue_id)
 
     _render_decision(result)
     if actual:

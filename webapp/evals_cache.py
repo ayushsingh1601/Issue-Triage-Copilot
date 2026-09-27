@@ -9,7 +9,7 @@ from triage.evals.runner import EvaluationRunner, sweep_retrieval_strategies
 from triage.persist import load_records
 from triage.rag.parse import IssueRecord
 
-from webapp.repo_service import DATA_DIR, ensure_repo
+from webapp.repo_service import DATA_DIR, ensure_repo, repo_key, run_async, triage_lock
 
 
 def evals_path() -> Path:
@@ -30,11 +30,12 @@ def _seed_evals_path() -> Path:
 def precompute(repo: str, held_out_limit: int = 10) -> dict:
     """Build the eval repo if needed, run the comparison, and cache the results."""
     paths = ensure_repo(repo)
-    runner = EvaluationRunner(paths.indexes, paths.processed)
-    results = runner.run_comparison(limit=held_out_limit)
-    sweep = sweep_retrieval_strategies(
-        paths.processed, paths.indexes, held_out_limit=held_out_limit
-    )
+    with triage_lock(repo_key(repo)):
+        runner = EvaluationRunner(paths.indexes, paths.processed)
+        results = run_async(runner.run_comparison_async(limit=held_out_limit))
+        sweep = sweep_retrieval_strategies(
+            paths.processed, paths.indexes, held_out_limit=held_out_limit
+        )
     payload = {
         "repo": repo,
         "generated_at": datetime.now(UTC).isoformat(),
