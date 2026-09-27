@@ -33,6 +33,9 @@ for key in (
     "OPENAI_FAST_MODEL",
     "EVAL_REPO",
     "MAX_ISSUES",
+    "LANGFUSE_PUBLIC_KEY",
+    "LANGFUSE_SECRET_KEY",
+    "LANGFUSE_BASE_URL",
 ):
     try:
         if key in st.secrets:

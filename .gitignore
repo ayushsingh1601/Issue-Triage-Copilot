@@ -5,6 +5,7 @@ __pycache__/
 .venv/
 venv/
 .env
+.streamlit/secrets.toml
 .pytest_cache/
 .ruff_cache/
 

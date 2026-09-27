@@ -6,7 +6,7 @@ COPY pyproject.toml README.md ./
 COPY triage ./triage
 COPY webapp ./webapp
 
-RUN pip install --no-cache-dir .[web] && \
+RUN pip install --no-cache-dir .[web,trace] && \
     rm -rf /root/.cache/pip
 
 ENV DATA_DIR=/data
