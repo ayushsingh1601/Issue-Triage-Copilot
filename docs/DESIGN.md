@@ -225,7 +225,58 @@ The web app is long-lived and multi-session. Two decisions matter:
 
 ---
 
-## 6. Evaluations
+## 6. Guardrails
+
+Three guardrails sit around the graph so the system is safe to expose publicly:
+
+- **Input guard** — runs before any agent or LLM work:
+  - a **deterministic prompt-injection rule set** that catches "ignore previous
+    instructions", "reveal your system prompt", role-switching, and jailbreak phrasing;
+  - an **LLM relevance gate** — a binary yes/no check that the query is actually a
+    triageable issue and not gibberish or off-topic text.
+  Rejected queries **short-circuit the graph** (a `reject` node), so a jailbreak attempt
+  or an unrelated query costs no LLM or tool calls.
+
+- **Citation verification** — before a decision reaches the user, every cited source
+  (issue ID or doc section) is checked against the corpus; invalid citations are dropped,
+  and every referenced similar issue is listed as a citation. The system can only cite
+  sources that actually exist.
+
+- **Confidence gate** — the classifier produces a confidence score; below a threshold
+  (0.5) the graph routes to a **human-in-the-loop** edge instead of returning a final
+  decision, flagging that the issue needs a maintainer's eyes.
+
+**Why:** the system is publicly hosted, so the input boundary must be cheap and
+deterministic (rule-based detection) with an LLM fallback for semantics. The output
+boundary must never fabricate sources, and the confidence gate stops overconfident wrong
+answers from being presented as final.
+
+---
+
+## 7. Observability & Operational Logging
+
+Every stage of the agent flow is observable:
+
+- **Local `Tracer`** — records per-node, per-LLM and per-tool latency and prints an
+  avg/p95 summary. No accounts or servers. The web app shows it as a per-stage latency
+  table after every triage.
+- **Langfuse** (open-source, free tier) — when `LANGFUSE_PUBLIC_KEY` and
+  `LANGFUSE_SECRET_KEY` are set, `observability.py` attaches a Langfuse callback to every
+  graph invocation (web app, notebook, and eval runner). The hosted trace shows **each
+  specialist LLM generation, every MCP tool call and its output, and the final
+  `TriageDecision` JSON**:
+
+![Langfuse trace of a triage run](langfuse_tracing.png)
+
+**Why:** agent behavior is only debuggable if capture is part of the graph's contract.
+The trace config is threaded through every nested `model.ainvoke` / `tool.ainvoke` — a
+real bug here was callbacks that weren't threaded and never saw the agent calls. Trace
+locally first with the `Tracer`; adopt a hosted backend behind environment variables so
+the core project needs no accounts.
+
+---
+
+## 8. Evaluations
 
 **Goal:** measure whether the system is good, and justify each design choice with numbers
 rather than assumptions.
@@ -236,6 +287,13 @@ rather than assumptions.
 corpus. At evaluation time they are treated as brand-new issues: the system is run on
 them, and its decision is compared against the actual resolution (real labels, the real
 closing comment, linked PRs).
+
+> **Note on scale.** The corpus is deliberately kept small (a few hundred issues per
+> repo), capped to stay within GitHub/OpenAI API limits for on-demand builds and to keep
+> evals cheap. Retrieval recall and the judge metrics are therefore **limited by corpus
+> size** — a small corpus surfaces less relevant evidence, so the eval numbers shown in
+> the README are a snapshot and will shift (and typically improve) when re-run over a
+> larger corpus.
 
 ### LLM-as-judge metrics
 
@@ -305,7 +363,7 @@ per-request feature, not just a batch script.
 
 ---
 
-## 7. Hosting (short note)
+## 9. Hosting (short note)
 
 The web app is a Streamlit app (Triage + Evals tabs) deployed free on **Streamlit
 Community Cloud**. Free hosts are **ephemeral** (disk resets on sleep), so the repo ships a
@@ -314,22 +372,4 @@ evals — making the demo work instantly and offline. Arbitrary repos are fetche
 **on demand** (capped by `MAX_ISSUES`), cached for the session, and rebuilt after a wake.
 Secrets (OpenAI, GitHub, optional Langfuse) live in platform secrets, never in git.
 
----
-
-## 8. Summary of Justifications
-
-| Choice | Why |
-|---|---|
-| RAG over a local corpus | Grounded, citable recommendations; no live API calls at runtime |
-| GitHub REST at ingestion only | Fast, offline retrieval; rate-limit friendly |
-| Held-out split with fixed seed | Honest, reproducible evaluation |
-| ChromaDB + cosine | Free, local, persistent, simple |
-| Whole-issue embedding (Index A) | The entire resolved thread is the unit of evidence |
-| Heading-aware doc chunking | Self-contained, citable doc sections |
-| Rewriter + reranker | Fixes cosine-order weakness; uplift measured by sweep |
-| MCP tool layer | Standard protocol, strict per-agent access, read-only |
-| Multi-agent graph (LangGraph) | Natural decomposition into history + process experts; parallel; tracing-friendly |
-| Vanilla baseline | A control group to justify the orchestration |
-| LLM-as-judge, binary verdicts | Standard RAG quality triad; simple, reliable scoring |
-| Evidence-aware judging | Each system judged on the evidence it actually used |
-| Objective metrics + sweeps | Numbers over intuition for every design decision |
+For the build, run, and evaluation commands, see the [`README`](../README.md).
