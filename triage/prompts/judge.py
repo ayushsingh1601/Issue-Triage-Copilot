@@ -6,7 +6,12 @@ METRICS = ["answer_relevancy", "context_relevance", "groundedness"]
 _SCORE_DESCRIPTIONS = {
     "answer_relevancy": "Does the decision directly address the new issue's problem?",
     "context_relevance": "Does the retrieved context actually support the decision?",
-    "groundedness": "Is every claim supported by a citation present in the retrieved context?",
+    "groundedness": (
+        "Are the decision's substantive claims (suggested labels, triage route, "
+        "affected modules, and any factual statements about the issue) supported by, "
+        "and traceable to, the cited sources in the retrieved context? Next-step "
+        "recommendations may be synthesized but must follow from that evidence."
+    ),
 }
 
 

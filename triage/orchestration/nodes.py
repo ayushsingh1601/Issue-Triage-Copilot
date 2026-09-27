@@ -7,6 +7,8 @@ from contextlib import nullcontext
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
+from pydantic import ValidationError
+
 from triage.agents.historical import HistoricalAgent
 from triage.agents.process import ProcessAgent
 from triage.agents.react import invoke_respond
@@ -142,13 +144,8 @@ def make_decide_node(
         patterns = parse_json_documents(content_text(result))[0]
 
         prompt = build_orchestrator_prompt(state, patterns)
-        with _maybe_span(tracer, "llm"):
-            raw = await invoke_respond(orchestrator_respond, prompt, config)
-        decision = TriageDecision.model_validate_json(extract_json(raw))
-        decision = verify_decision(
-            decision,
-            issue_ids=toolbox.issue_ids(),
-            doc_ids=toolbox.doc_ids(),
+        decision = await _orchestrate(
+            orchestrator_respond, prompt, toolbox, tracer, config
         )
 
         confidence = float(state.classification.get("confidence", 0.0))
@@ -171,6 +168,32 @@ def make_decide_node(
         }
 
     return node
+
+
+async def _orchestrate(
+    orchestrator_respond: Any,
+    prompt: str,
+    toolbox: AgentToolbox,
+    tracer: Tracer | None,
+    config: RunnableConfig,
+    retries: int = 2,
+) -> TriageDecision:
+    """Invoke the orchestrator, retrying when it returns malformed JSON."""
+    last_error: ValidationError | None = None
+    for attempt in range(retries + 1):
+        with _maybe_span(tracer, "llm"):
+            raw = await invoke_respond(orchestrator_respond, prompt, config)
+        try:
+            decision = TriageDecision.model_validate_json(extract_json(raw))
+        except ValidationError as exc:
+            last_error = exc
+            continue
+        return verify_decision(
+            decision,
+            issue_ids=toolbox.issue_ids(),
+            doc_ids=toolbox.doc_ids(),
+        )
+    raise last_error
 
 
 def _maybe_span(tracer: Tracer | None, name: str, **detail):

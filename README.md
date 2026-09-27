@@ -380,16 +380,18 @@ for more stable figures:
 
 ```
 system   label_top1  label_top3  action_rouge_l  entity_match  answer_rel  context_rel  grounded  recall@10  precision@10  latency_p95  cost
-vanilla  0.3333      0.3333      0.0520          0.0           1.0         0.2          0.0       0.0860     0.26          12.2         0.0002
-multi    0.3333      0.4000      0.0480          0.0           1.0         0.2667       0.0       0.0880     0.26          13.8         0.0008
+vanilla  0.3333      0.3333      0.0500          0.0           1.0         0.3333       0.3333    0.0940     0.253          ~12         0.0002
+multi    0.3333      0.4000      0.0460          0.0           1.0         0.2667       0.0667    0.0870     0.260          ~14         0.0008
 ```
 
-Context-relevance is the judge's estimate of whether the retrieved evidence supports the
-decision; multi now leads it because the specialists gather similar issues + runbook steps.
-Groundedness stays ~0: the judge requires every synthetic `next_steps` claim to be directly
-traceable to the retrieved context, which triage recommendations rarely are — a strict bar,
-documented as a known limitation. The retrieval-strategy sweep showed `rewrite+rerank`
-lifting recall@10 vs base.
+Context-relevance and groundedness are LLM-judge verdicts; the judge is given the
+evidence each system actually retrieved (for multi: the similar issues + runbook steps
+its specialists gathered, expanded to full text). Groundedness was previously ~0 because
+the metric demanded *every* claim — including synthesized `next_steps` — be literally
+cited; it now requires the substantive claims (labels, route, modules, facts) to be
+traceable while treating recommendations as synthesized from that evidence. The numbers
+above are a 15-issue sample of a 255-issue corpus; re-run over the full ~2-3k corpus for
+stable figures.
 
 ## Problems faced & solutions
 

@@ -1,6 +1,6 @@
 {
   "repo": "scikit-learn/scikit-learn",
-  "generated_at": "2026-09-27T01:30:23.831937+00:00",
+  "generated_at": "2026-09-27T01:55:09.552231+00:00",
   "corpus_size": 255,
   "held_out_size": 45,
   "systems": {
@@ -8,28 +8,28 @@
       "system": "vanilla",
       "label_top1": 0.3333333333333333,
       "label_top3": 0.3333333333333333,
-      "action_rouge_l": 0.052046666666666665,
+      "action_rouge_l": 0.04952666666666667,
       "action_entity_match": 0.0,
       "answer_relevancy": 1.0,
-      "context_relevance": 0.2,
-      "groundedness": 0.0,
-      "recall_at_k": 0.08572680669601487,
-      "precision_at_k": 0.26,
-      "latency_p95": 12.185928,
+      "context_relevance": 0.3333333333333333,
+      "groundedness": 0.3333333333333333,
+      "recall_at_k": 0.09375307991157172,
+      "precision_at_k": 0.2533333333333333,
+      "latency_p95": 8.783698,
       "cost": 0.0002
     },
     "multi": {
       "system": "multi",
       "label_top1": 0.3333333333333333,
       "label_top3": 0.4,
-      "action_rouge_l": 0.04784,
+      "action_rouge_l": 0.04567333333333334,
       "action_entity_match": 0.0,
       "answer_relevancy": 1.0,
       "context_relevance": 0.26666666666666666,
-      "groundedness": 0.0,
-      "recall_at_k": 0.08752392119007296,
+      "groundedness": 0.06666666666666667,
+      "recall_at_k": 0.08673987859143971,
       "precision_at_k": 0.26,
-      "latency_p95": 13.825821,
+      "latency_p95": 8.703996,
       "cost": 0.0008
     }
   },
@@ -40,15 +40,15 @@
       "precision_at_10": 0.5067,
       "answer_relevancy": 0.1333,
       "context_relevance": 0.1333,
-      "groundedness": 0.0
+      "groundedness": 0.1333
     },
     {
       "strategy": "rewrite",
-      "recall_at_10": 0.0906,
-      "precision_at_10": 0.28,
+      "recall_at_10": 0.0893,
+      "precision_at_10": 0.2667,
       "answer_relevancy": 0.2,
       "context_relevance": 0.1333,
-      "groundedness": 0.0
+      "groundedness": 0.1333
     },
     {
       "strategy": "rerank",
@@ -56,15 +56,15 @@
       "precision_at_10": 0.5067,
       "answer_relevancy": 0.1333,
       "context_relevance": 0.1333,
-      "groundedness": 0.0
+      "groundedness": 0.1333
     },
     {
       "strategy": "rewrite+rerank",
-      "recall_at_10": 0.0874,
-      "precision_at_10": 0.2667,
-      "answer_relevancy": 0.2,
+      "recall_at_10": 0.1059,
+      "precision_at_10": 0.28,
+      "answer_relevancy": 0.1333,
       "context_relevance": 0.1333,
-      "groundedness": 0.0
+      "groundedness": 0.1333
     }
   ]
 }
