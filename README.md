@@ -291,10 +291,12 @@ The `webapp/` folder is a Streamlit app that serves the whole copilot online for
   builds a per-repo RAG index on the spot; every later triage for that repo is served
   from cache. Outputs the guard verdict, classification, the formatted decision, the
   decision JSON, citations, a per-stage latency trace, and (for fetched issues) the
-  actual resolution side by side. For an issue triaged by number, a **per-issue eval**
-  panel scores the multi-agent decision vs the vanilla baseline against the actual
-  resolution (labels, action overlap), and the same scores appear at the top of the
-  Evals tab.
+  actual resolution side by side. The issue-number field defaults to the repo's **latest
+  issue number** (staleness OK; cached per repo per session). For an issue triaged by
+  number, a **per-issue eval** panel scores the multi-agent decision vs the vanilla
+  baseline against the actual resolution — labels, action overlap, and LLM-judge verdicts
+  (answer relevancy, context relevance, groundedness) — and the same scores appear at the
+  top of the Evals tab.
 - **Evals tab** — shows the cached vanilla-RAG vs multi-agent comparison (multi-agent
   is the primary result), plus the retrieval-strategy sweep, latency, and cost. Results
   are precomputed once and cached, not re-run per visitor.
@@ -356,12 +358,24 @@ open-source / self-hostable choice.
 
 ## Evaluation design
 
-- **Held-out set** — 15-20% of resolved issues are carved out at ingestion time and never
-  enter the corpus; they are treated as new issues at eval time.
+- **Baseline selection** — the corpus is the repo's **newest-created closed issues**
+  (GitHub's default newest-first ordering), capped by the fetch limit (`--limit` for the
+  CLI, `MAX_ISSUES` for on-demand repo builds). At ingestion, 15% is carved out as the
+  **held-out set via a fixed seed (42)** — deterministic per snapshot, never random — and
+  those issues never enter the corpus.
 - **LLM-as-judge** (`gpt-4o-mini`) on every held-out issue, with a separate LLM call per
-  metric. Each metric returns a **binary verdict** (`yes`/`no`) — answer relevancy, context
-  relevance, groundedness — which is converted to a 1/0 score. A different model/respond can
-  be configured per metric via `Judge(responds={metric: fn, ...})`.
+  metric. Each metric returns a **binary verdict** (`yes`/`no`) — answer relevancy,
+  context relevance, groundedness — which is converted to a 1/0 score. A different
+  model/respond can be configured per metric via `Judge(responds={metric: fn, ...})`.
+  Definitions:
+  - **answer relevancy** — does the decision directly address the issue's problem?
+  - **context relevance** — does the retrieved evidence actually support the decision?
+  - **groundedness** — are the substantive claims (labels, triage route, affected
+    modules, factual statements) traceable to the cited sources in the retrieved context?
+    Next-step recommendations may be synthesized but must follow from that evidence.
+- **Evidence-aware judging** — each system is judged against **the evidence it actually
+  used**: the multi-agent against the similar issues + runbook steps its specialists
+  gathered (expanded to full text), the vanilla baseline against the raw retriever top-k.
 - **Objective metrics** — label accuracy (top-1/top-3 vs actual applied labels), action
   overlap (ROUGE-L + entity match vs the actual closing comment / linked PR), and retrieval
   **recall@k + precision@k** (relevant set = corpus issues sharing ≥1 label with the query).
@@ -422,6 +436,9 @@ stable figures.
 | Once tools were bound, OpenAI rejected the messages: `ToolMessage` must follow the `AIMessage` that declared the `tool_calls` | Append the `AIMessage` before the `ToolMessage`s in `react_loop` |
 | The agents passed just the repo owner (e.g. `scikit-learn`) while the corpus repo is `owner/name`, so the exact-match `where` filter returned nothing | Made the repo/issue-type filters lenient (`_matches_repo`, `_matches_type`) with a Python-side fallback when the type filter is too strict |
 | The judge's groundedness could never pass: decisions cited doc sources only, and the judge context was the raw retriever top-k, not what the specialists gathered | `verify_decision` adds each similar-issue id to `citations`; the eval runner judges multi against its actual evidence (full similar-issue text) |
+| Groundedness was pinned at ~0 even with evidence present: the judge demanded *every* claim — including synthesized `next_steps` — be literally cited | Redefined the metric: substantive claims (labels, route, modules, facts) must be traceable to cited sources; recommendations may be synthesized from that evidence |
+| The second triage in a long-lived process failed with `Event loop is closed` — each call ran `asyncio.run`, and async OpenAI/httpx clients were garbage-collected against the now-closed loop | Run every graph on one process-wide event loop (`run_async` in `repo_service`) and serialize triages per repo (`triage_lock`) |
+| The orchestrator occasionally returned malformed JSON, aborting the whole eval run | Retry the orchestrator up to 2× on `ValidationError` (`_orchestrate` in `orchestration/nodes.py`) |
 | Notebooks run inside IPython's event loop, so `asyncio.run()` in a cell fails | Added async runner APIs (`run_comparison_async`, `evaluate_system_async`) and the notebook uses top-level `await` |
 
 ## Learnings
@@ -474,9 +491,25 @@ stable figures.
   integrations; a version pin in `pyproject.toml` plus an import smoke test catches it.
 - **Run tests before committing every step**, and when a commit ships a broken test, reset
   it and recommit rather than piling on fix commits.
+- **Bind the tools to the model explicitly.** The ReAct loop must `bind_tools` before
+  calling the LLM; scripted test models that return `tool_calls` hide this, so a hermetic
+  wiring test alone isn't enough — validate real tool calls with a keyed smoke run.
+- **Async clients are bound to an event loop.** `asyncio.run` per call creates and closes a
+  loop, and GC'd async clients then fail with "Event loop is closed" on a later run. In a
+  long-lived process, reuse one process-wide loop and serialize per repo.
+- **Auto-eval metrics must match the task.** A strict "every claim must be cited" test can
+  never hold for synthesized recommendations; judge substantive claims and ground each
+  system against the evidence it actually retrieved.
+- **Free hosts are ephemeral.** Commit a small seed (corpus + embedding cache + precomputed
+  evals) so a hosted demo works instantly and offline; arbitrary-repo indexes are built on
+  demand and rebuilt after the host sleeps.
+- **LLM tool arguments are unreliable.** Agents pass owner-only repo names and loose issue
+  types; lenient matchers beat exact-match filters for LLM-driven callers.
 
 ## Notes & scope
 
 - Pipeline targets the chosen repos only; no generic multi-API support.
 - No code indexing — file paths appear only as text inside issues.
 - Secrets live only in `.env` / environment variables; never log or commit them.
+- The committed seed is a 255-issue scikit-learn corpus (with precomputed evals); arbitrary
+  repos are fetched + indexed on demand in the hosted app, capped at `MAX_ISSUES`.
